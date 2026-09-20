@@ -22,7 +22,7 @@ Read this in [Русский](README_RU.md).
 | Action | Keys |
 |---|---|
 | Move | Arrow keys |
-| Pause | `P` or `Space` |
+| Pause | `P` |
 | Menu | `Esc` |
 | Fullscreen | `F11` |
 | Restart after Game Over | `R` |
