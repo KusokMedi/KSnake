@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    echo "Usage: $0 [VERSION]"
+    echo
+    echo "  VERSION  release tag, default: temp"
+    echo
+    echo "Windows release is built as a single self-contained exe (DLLs/font embedded)."
+    exit 0
+fi
+
 VERSION="${1:-temp}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -19,7 +28,8 @@ mkdir -p "$OUT_DIR" "$CACHE_DIR"
 say() { printf '\033[1;32m[release]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[release] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
-for tool in curl unzip zip convert x86_64-w64-mingw32-g++; do
+TOOLS="curl unzip convert x86_64-w64-mingw32-g++ x86_64-w64-mingw32-windres"
+for tool in $TOOLS; do
     command -v "$tool" >/dev/null 2>&1 || fail "missing required tool: $tool"
 done
 
@@ -138,22 +148,21 @@ cp "$SDL_SRC/bin/SDL2.dll" "$WIN_DIR/"
 cp "$TTF_SRC/bin/SDL2_ttf.dll" "$WIN_DIR/"
 cp "$ROOT/assets/font.ttf" "$WIN_DIR/assets/font.ttf"
 
-cat > "$WIN_DIR/README.txt" <<EOF
-KSnake $VERSION (Windows x86_64)
-
-Run KSnake.exe. Keep SDL2.dll, SDL2_ttf.dll and the assets/ folder next to it.
-
-Controls:
-  Arrows / WASD           - move (use P to pause)
-  P / Space               - pause
-  Esc                     - menu
-  F11                     - fullscreen
+WIN_EXE="KSnake-$VERSION-windows-x86_64.exe"
+say "Building single-file Windows EXE..."
+cat > "$WIN_DIR/KSnake.rc" <<'EOF'
+101 RCDATA "KSnake.exe"
+102 RCDATA "SDL2.dll"
+103 RCDATA "SDL2_ttf.dll"
+104 RCDATA "assets/font.ttf"
 EOF
-
-WIN_ZIP="KSnake-$VERSION-windows-x86_64.zip"
-say "Zipping Windows release..."
-(cd "$WIN_DIR" && zip -qr "$OUT_DIR/$WIN_ZIP" .)
+x86_64-w64-mingw32-windres -O coff "$WIN_DIR/KSnake.rc" -o "$WIN_DIR/KSnake.res"
+x86_64-w64-mingw32-g++ -O2 -s -municode -mwindows -static \
+    "$ROOT/third_party/win_singlefile/singlefile.cpp" \
+    "$WIN_DIR/KSnake.res" \
+    -o "$WIN_DIR/KSnake-single.exe"
+mv -f "$WIN_DIR/KSnake-single.exe" "$OUT_DIR/$WIN_EXE"
 
 # ---------------------------------------------------------------- summary
 say "Done. Artifacts:"
-ls -lh "$OUT_DIR"/*.AppImage "$OUT_DIR"/*.zip 2>/dev/null || ls -lh "$OUT_DIR"
+ls -lh "$OUT_DIR"/*.AppImage "$OUT_DIR"/*.exe 2>/dev/null || ls -lh "$OUT_DIR"

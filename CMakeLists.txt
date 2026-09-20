@@ -22,7 +22,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set_target_properties(snake PROPERTIES WIN32_EXECUTABLE TRUE)
     target_include_directories(snake PRIVATE
         ${SDL2_INCLUDE} ${SDL2TTF_INCLUDE} ${CMAKE_SOURCE_DIR}/third_party)
-    target_link_libraries(snake ${SDL2_LIB} ${SDL2TTF_LIB})
+    target_link_libraries(snake ${SDL2_LIB} ${SDL2TTF_LIB} -static)
 else()
     target_include_directories(snake PRIVATE
         ${SDL2TTF_INCLUDE} ${CMAKE_SOURCE_DIR}/third_party)
