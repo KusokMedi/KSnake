@@ -15,7 +15,7 @@
 - Сохранение лучшего счёта в JSON
 - Поддержка фуллскрина (F11)
 - Кросс-платформенность: Linux и Windows
-- Сборочный скрипт, собирающий релизные артефакты: AppImage и Windows `.zip`
+- Сборочный скрипт, собирающий релизные артефакты: AppImage и Windows `.exe`
 
 ## Управление
 
@@ -37,11 +37,11 @@ KSnake/
 ├── assets/font.ttf    # шрифт
 ├── third_party/       # вендорные заголовки (nlohmann/json)
 ├── build.sh           # сборка dev-версии
-├── build_release.sh   # сборка релиза (AppImage + Windows zip)
+├── build_release.sh   # сборка релиза (AppImage + Windows exe)
 ├── start.sh           # запуск
 └── CMakeLists.txt     # конфигурация сборки
 ```
 
 ## Лицензия
 
-MIT - см. [LICENSE](LICENSE).
+Apache License 2.0 - см. [LICENSE](LICENSE).

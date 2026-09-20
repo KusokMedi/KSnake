@@ -15,7 +15,7 @@ Read this in [Русский](README_RU.md).
 - Best score saved to a JSON file
 - Fullscreen support (F11)
 - Cross-platform: Linux and Windows
-- Release script producing AppImage and Windows `.zip`
+- Release script producing AppImage and Windows `.exe`
 
 ## Controls
 
@@ -37,11 +37,11 @@ KSnake/
 ├── assets/font.ttf    # font
 ├── third_party/       # vendored headers (nlohmann/json)
 ├── build.sh           # dev build
-├── build_release.sh   # release build (AppImage + Windows zip)
+├── build_release.sh   # release build (AppImage + Windows exe)
 ├── start.sh           # run
 └── CMakeLists.txt     # build configuration
 ```
 
 ## License
 
-MIT - see [LICENSE](LICENSE).
+Apache License 2.0 - see [LICENSE](LICENSE).
