@@ -4,6 +4,8 @@
 
 Скачать игру можно в [Releases](https://github.com/KusokMedi/KSnake/releases).
 
+Читать на [English](README.md).
+
 ## Возможности
 
 - Поле 20×15 с адаптивным размером окна
