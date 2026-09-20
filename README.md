@@ -1,48 +1,48 @@
 # KSnake
 
-Классическая игра «Змейка» для десктопа, написанная на C++ с использованием SDL2 и SDL2_ttf.
+Classic Snake game for desktop written in C++ with SDL2 and SDL2_ttf.
 
-| [English](README_EN.md) |
+| [Русский](README_RU.md) |
 
-Скачать игру можно в [Releases](https://github.com/KusokMedi/KSnake/releases).
+Download the game in [Releases](https://github.com/KusokMedi/KSnake/releases).
 
-## Возможности
+## Features
 
-- Поле 20×15 с адаптивным размером окна
-- Управление с клавиатуры и мыши (выбор кнопок в меню, кликабельные ссылки)
-- Пауза (автопауза при потере фокуса/сворачивании окна)
-- Экран Game Over с результатами (счёт, время, рекорд)
-- Сохранение лучшего счёта в JSON
-- Поддержка фуллскрина (F11)
-- Кросс-платформенность: Linux и Windows
-- Сборочный скрипт, собирающий релизные артефакты: AppImage и Windows `.zip`
+- 20×15 grid with resizeable window
+- Keyboard and mouse controls (menu selection, clickable links)
+- Pause (automatic on focus loss / minimize)
+- Game Over screen with stats (score, time, best score)
+- Best score saved to a JSON file
+- Fullscreen support (F11)
+- Cross-platform: Linux and Windows
+- Release script producing AppImage and Windows `.zip`
 
-## Управление
+## Controls
 
-| Действие | Клавиши |
+| Action | Keys |
 |---|---|
-| Движение | Стрелки |
-| Поворот направо/налево | Стрелки |
-| Пауза | `P` или `Space` |
-| Меню | `Esc` |
-| Фуллскрин | `F11` |
-| Рестарт после Game Over | `R` |
+| Move | Arrow keys |
+| Turn right/left | Arrow keys |
+| Pause | `P` or `Space` |
+| Menu | `Esc` |
+| Fullscreen | `F11` |
+| Restart after Game Over | `R` |
 
-В главном меню можно управляться стрелками и `Enter`, а также мышью.
+The main menu supports both arrow keys + `Enter` and mouse.
 
-## Структура
+## Structure
 
 ```
 KSnake/
-├── src/main.cpp       # игра (вся логика и рендер)
-├── assets/font.ttf    # шрифт
-├── third_party/       # вендорные заголовки (nlohmann/json)
-├── build.sh           # сборка dev-версии
-├── build_release.sh   # сборка релиза (AppImage + Windows zip)
-├── start.sh           # запуск
-└── CMakeLists.txt     # конфигурация сборки
+├── src/main.cpp       # game (logic and rendering)
+├── assets/font.ttf    # font
+├── third_party/       # vendored headers (nlohmann/json)
+├── build.sh           # dev build
+├── build_release.sh   # release build (AppImage + Windows zip)
+├── start.sh           # run
+└── CMakeLists.txt     # build configuration
 ```
 
-## Лицензия
+## License
 
-MIT — см. [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).
