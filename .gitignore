@@ -30,3 +30,18 @@
 *.exe
 *.out
 *.app
+
+# Build dirs
+/build/
+/.build-release/
+/.build-win/
+
+# Release tooling cache
+/.release-cache/
+/final_build/
+
+# AppImage
+*.AppImage
+
+# Local scores fallback
+/scores.json
