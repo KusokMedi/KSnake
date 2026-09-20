@@ -2,9 +2,11 @@
 
 Classic Snake game for desktop written in C++ with SDL2 and SDL2_ttf.
 
-| [Русский](README_RU.md) |
-
 Download the game in [Releases](https://github.com/KusokMedi/KSnake/releases).
+
+### Languages
+
+This README is also available in [Русский](README_RU.md).
 
 ## Features
 

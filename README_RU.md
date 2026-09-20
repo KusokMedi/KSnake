@@ -2,9 +2,11 @@
 
 Классическая игра «Змейка» для десктопа, написанная на C++ с использованием SDL2 и SDL2_ttf.
 
-| [English](README.md) |
-
 Скачать игру можно в [Releases](https://github.com/KusokMedi/KSnake/releases).
+
+### Языки
+
+Этот README также доступен на [English](README.md).
 
 ## Возможности
 
