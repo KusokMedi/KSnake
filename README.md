@@ -22,7 +22,6 @@ Read this in [Русский](README_RU.md).
 | Action | Keys |
 |---|---|
 | Move | Arrow keys |
-| Turn right/left | Arrow keys |
 | Pause | `P` or `Space` |
 | Menu | `Esc` |
 | Fullscreen | `F11` |
