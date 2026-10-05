@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>KSnake</title>
+
+  <defs>
+    <!-- Яблоко: свет сверху-слева, тень снизу-справа, градиент в координатах
+         пользователя, чтобы не было шва между долями плода. -->
+    <linearGradient id="appleBody" gradientUnits="userSpaceOnUse"
+                    x1="176" y1="176" x2="212" y2="216">
+      <stop offset="0" stop-color="#f4675a"/>
+      <stop offset="0.5" stop-color="#e74c3c"/>
+      <stop offset="1" stop-color="#b03a27"/>
+    </linearGradient>
+    <linearGradient id="leafFill" gradientUnits="userSpaceOnUse"
+                    x1="200" y1="162" x2="220" y2="176">
+      <stop offset="0" stop-color="#2ecc71"/>
+      <stop offset="1" stop-color="#1e8449"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Подложка: тёмный скруглённый квадрат, как тёмная тема игры -->
+  <rect x="4" y="4" width="248" height="248" rx="56" fill="#141414"/>
+  <rect x="6" y="6" width="244" height="244" rx="54" fill="none" stroke="#2b2b31" stroke-width="4"/>
+
+  <!-- Змейка: лесенка 7 сегментов по сетке 4x4 (клетка 44px, отступ 40px).
+       Цвет плавно темнеет к хвосту, как в игре (46,204,113 -> 30,132,73). -->
+  <g fill="#1e8449">
+    <rect x="40" y="172" width="44" height="44" rx="10"/>
+    <rect x="84" y="172" width="44" height="44" rx="10"/>
+  </g>
+  <g fill="#229954">
+    <rect x="84" y="128" width="44" height="44" rx="10"/>
+    <rect x="128" y="128" width="44" height="44" rx="10"/>
+  </g>
+  <g fill="#27ae60">
+    <rect x="128" y="84" width="44" height="44" rx="10"/>
+    <rect x="172" y="84" width="44" height="44" rx="10"/>
+  </g>
+
+  <!-- Голова -->
+  <rect x="172" y="40" width="44" height="44" rx="10" fill="#2ecc71"/>
+
+  <!-- Глаза на голове -->
+  <g fill="#ffffff">
+    <rect x="180" y="47" width="13" height="16" rx="5"/>
+    <rect x="198" y="47" width="13" height="16" rx="5"/>
+  </g>
+  <g fill="#141414">
+    <rect x="185" y="54" width="7" height="9" rx="3"/>
+    <rect x="203" y="54" width="7" height="9" rx="3"/>
+  </g>
+
+  <!-- Буква K в свободном поле слева сверху: геометрический, без шрифта,
+       чтобы SVG не зависел от наличия шрифта в системе. -->
+  <path fill="#e1e1e1" d="M48 40 h14 v32 l30 -32 h22 l-38 40 40 40 h-22 l-30 -32 v32 h-14 z"/>
+
+  <!-- Яблоко: две доли с верхней выемкой, стебель, лист, блики -->
+  <path fill="url(#appleBody)" d="M194 178
+      C188 171 180 171 175 176
+      C169 182 168 191 172 201
+      C176 211 184 217 192 216
+      L196 216
+      C204 217 212 211 216 201
+      C220 191 219 182 213 176
+      C208 171 200 171 194 178 Z"/>
+  <path fill="none" stroke="#8d6e63" stroke-width="5" stroke-linecap="round"
+        d="M194 180 C193 173 196 168 201 166"/>
+  <path fill="url(#leafFill)" d="M200 167 C208 159 219 162 221 170 C212 176 203 174 200 167 Z"/>
+  <path fill="none" stroke="#157a3c" stroke-width="1.6" stroke-linecap="round" opacity="0.8"
+        d="M202 168 C208 165 214 166 219 169"/>
+  <ellipse cx="182" cy="187" rx="7" ry="4.5" fill="#ffffff" opacity="0.55"
+           transform="rotate(-30 182 187)"/>
+  <circle cx="189" cy="181" r="2.2" fill="#ffffff" opacity="0.4"/>
+</svg>

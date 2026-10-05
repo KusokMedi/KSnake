@@ -45,3 +45,6 @@
 
 # Local scores fallback
 /scores.json
+
+# Visual test harness output
+/tests/build/

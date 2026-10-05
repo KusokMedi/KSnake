@@ -26,6 +26,7 @@ const int RC_GAME = 101;
 const int RC_SDL2 = 102;
 const int RC_SDL2TTF = 103;
 const int RC_FONT = 104;
+const int RC_VERSION = 105;
 
 bool extract_resource(int id, const std::wstring& dest) {
     HRSRC res = FindResourceW(nullptr, MAKEINTRESOURCEW(id), RT_RCDATA);
@@ -50,6 +51,43 @@ bool make_dir(const std::wstring& path) {
     return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
 }
 
+// Удаляет распакованное дерево. Вызывается и на пути ошибки, и после игры:
+// иначе неудачный запуск оставлял бы в %TEMP% exe с DLL-ками (около 15 МБ)
+// навсегда.
+void remove_extracted(const std::wstring& dir) {
+    static const wchar_t* const kFiles[] = {L"KSnake.exe", L"SDL2.dll", L"SDL2_ttf.dll",
+                                             L"VERSION"};
+    for (const wchar_t* name : kFiles) {
+        DeleteFileW((dir + L"\\" + name).c_str());
+    }
+    DeleteFileW((dir + L"\\assets\\font.ttf").c_str());
+    RemoveDirectoryW((dir + L"\\assets").c_str());
+    RemoveDirectoryW(dir.c_str());
+}
+
+// Каталог создаётся атомарно: CreateDirectoryW возвращает FALSE с
+// ERROR_ALREADY_EXISTS, если каталог уже есть. Поэтому проверять
+// «не существует» перед созданием не нужно — такая проверка оставляла бы
+// окно, в которое успевают подложить свой каталог или junction, и файлы
+// уехали бы в чужое место. Имя угадывается из PID, поэтому результат
+// всё равно проверяем: это должен быть обычный каталог, а не reparse point.
+bool make_private_dir(const std::wstring& temp_root, std::wstring& out) {
+    for (int i = 0; i < 10000; ++i) {
+        std::wstring cand = temp_root + L"KSnake-data-" +
+                            std::to_wstring(GetCurrentProcessId());
+        if (i > 0) cand += L"-" + std::to_wstring(i);
+        if (CreateDirectoryW(cand.c_str(), nullptr) == FALSE) continue;
+        DWORD attr = GetFileAttributesW(cand.c_str());
+        if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY) != 0 &&
+            (attr & FILE_ATTRIBUTE_REPARSE_POINT) == 0) {
+            out = cand;
+            return true;
+        }
+        RemoveDirectoryW(cand.c_str());
+    }
+    return false;
+}
+
 }  // namespace
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
@@ -58,23 +96,29 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     const std::wstring temp_root(buf, n);
 
     std::wstring dir;
-    for (int i = 0; i < 10000; ++i) {
-        std::wstring cand = temp_root + L"KSnake-data-" +
-                            std::to_wstring(GetCurrentProcessId());
-        if (i > 0) cand += L"-" + std::to_wstring(i);
-        if (GetFileAttributesW(cand.c_str()) == INVALID_FILE_ATTRIBUTES) {
-            dir = cand;
-            break;
-        }
+    if (!make_private_dir(temp_root, dir)) return 1;
+
+    if (!make_dir(dir + L"\\assets")) {
+        remove_extracted(dir);
+        return 2;
     }
-    if (dir.empty()) return 1;
 
-    if (!make_dir(dir) || !make_dir(dir + L"\\assets")) return 2;
-
-    if (!extract_resource(RC_GAME, dir + L"\\KSnake.exe")) return 3;
-    if (!extract_resource(RC_SDL2, dir + L"\\SDL2.dll")) return 4;
-    if (!extract_resource(RC_SDL2TTF, dir + L"\\SDL2_ttf.dll")) return 5;
-    if (!extract_resource(RC_FONT, dir + L"\\assets\\font.ttf")) return 6;
+    struct {
+        int id;
+        const wchar_t* rel;
+        int err;
+    } kFiles[] = {
+        {RC_GAME, L"\\KSnake.exe", 3},
+        {RC_SDL2, L"\\SDL2.dll", 4},
+        {RC_SDL2TTF, L"\\SDL2_ttf.dll", 5},
+        {RC_FONT, L"\\assets\\font.ttf", 6},
+        {RC_VERSION, L"\\VERSION", 8},
+    };
+    for (const auto& item : kFiles) {
+        if (extract_resource(item.id, dir + item.rel)) continue;
+        remove_extracted(dir);
+        return item.err;
+    }
 
     const wchar_t* raw = GetCommandLineW();
     std::vector<wchar_t> cmd(raw, raw + std::wcslen(raw) + 1);
@@ -87,8 +131,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 
     const std::wstring app = dir + L"\\KSnake.exe";
     BOOL ok = CreateProcessW(app.c_str(), cmd.data(), nullptr, nullptr, FALSE,
-                             0, nullptr, dir.c_str(), &si, &pi);
-    if (!ok) return 7;
+                              0, nullptr, dir.c_str(), &si, &pi);
+    if (!ok) {
+        remove_extracted(dir);
+        return 7;
+    }
 
     CloseHandle(pi.hThread);
     WaitForSingleObject(pi.hProcess, INFINITE);
@@ -96,12 +143,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     GetExitCodeProcess(pi.hProcess, &code);
     CloseHandle(pi.hProcess);
 
-    DeleteFileW((dir + L"\\KSnake.exe").c_str());
-    DeleteFileW((dir + L"\\SDL2.dll").c_str());
-    DeleteFileW((dir + L"\\SDL2_ttf.dll").c_str());
-    DeleteFileW((dir + L"\\assets\\font.ttf").c_str());
-    RemoveDirectoryW((dir + L"\\assets").c_str());
-    RemoveDirectoryW(dir.c_str());
+    remove_extracted(dir);
 
     return static_cast<int>(code);
 }

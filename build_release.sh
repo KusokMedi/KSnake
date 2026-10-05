@@ -4,16 +4,27 @@ set -euo pipefail
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     echo "Usage: $0 [VERSION]"
     echo
-    echo "  VERSION  release tag, default: temp"
+    echo "  VERSION  release tag, default: contents of the VERSION file"
     echo
     echo "Windows release is built as a single self-contained exe (DLLs/font embedded)."
     exit 0
 fi
 
-VERSION="${1:-temp}"
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$SCRIPT_DIR"
+
+VERSION="${1:-$(tr -d '[:space:]' < "$ROOT/VERSION")}"
+
+say() { printf '\033[1;32m[release]\033[0m %s\n' "$*"; }
+fail() { printf '\033[1;31m[release] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
+
+# Тег релиза подставляется в пути (final_build/$VERSION, KSnake-$VERSION-*.AppImage)
+# и в текст .desktop, поэтому проверяем его ДО первого rm/mkdir: строка вида
+# "../../etc" иначе уводила бы rm -rf за пределы репозитория.
+[[ -n "$VERSION" ]] || fail "VERSION is empty"
+[[ "$VERSION" =~ ^[0-9]+(\.[0-9]+)*$ ]] \
+    || fail "VERSION '$VERSION' is not a dotted number (expected e.g. 1.1 or 1.2.0)"
+
 OUT_DIR="$ROOT/final_build/$VERSION"
 CACHE_DIR="$ROOT/.release-cache"
 LINUX_BUILD_DIR="$ROOT/.build-release"
@@ -22,22 +33,46 @@ WIN_BUILD_DIR="$ROOT/.build-win"
 SDL2_VER="2.32.10"
 SDL2_TTF_VER="2.24.0"
 
-rm -rf "$OUT_DIR"
+# rm -rf только по путям, которые мы сами вычислили внутри репозитория.
+# Пустая строка или "/" здесь означали бы удаление не того каталога.
+safe_rm() {
+    local target="$1" resolved root_resolved
+    [[ -n "$target" ]] || fail "safe_rm: empty path"
+    resolved="$(realpath -m "$target")"
+    root_resolved="$(realpath -m "$ROOT")"
+    case "$resolved" in
+        "$root_resolved"|"$root_resolved"/*) ;;
+        *) fail "safe_rm: $resolved is outside $root_resolved" ;;
+    esac
+    rm -rf -- "$target"
+}
+
+safe_rm "$OUT_DIR"
 mkdir -p "$OUT_DIR" "$CACHE_DIR"
 
-say() { printf '\033[1;32m[release]\033[0m %s\n' "$*"; }
-fail() { printf '\033[1;31m[release] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
-
-TOOLS="curl unzip convert x86_64-w64-mingw32-g++ x86_64-w64-mingw32-windres"
+TOOLS="curl unzip x86_64-w64-mingw32-g++ x86_64-w64-mingw32-windres"
 for tool in $TOOLS; do
     command -v "$tool" >/dev/null 2>&1 || fail "missing required tool: $tool"
 done
 
+# Иконка коммитится в assets/ наряду с исходным SVG: пересобрать её можно
+# через assets/make_icons.sh, но для релиза готовых файлов достаточно.
+ICON_SRC="$ROOT/assets/ksnake.png"
+ICON_ICO="$ROOT/assets/ksnake.ico"
+for icon in "$ICON_SRC" "$ICON_ICO"; do
+    [[ -f "$icon" ]] || fail "missing icon: $icon (run assets/make_icons.sh)"
+done
+
 download() {
     local url="$1" dest="$2"
-    if [[ ! -f "$dest" ]]; then
+    if [[ ! -s "$dest" ]]; then
         say "Downloading $(basename "$dest")..."
-        curl -sL -o "$dest" "$url" || fail "failed to download $url"
+        # -f обязателен: без него curl кладёт в dest тело страницы с HTTP-ошибкой,
+        # и битый zip/ico молча уходит дальше. -L нужен для редиректов GitHub,
+        # --retry переживает кратковременные сбои сети.
+        curl -fsSL --retry 3 --retry-delay 2 -o "$dest" "$url" \
+            || fail "failed to download $url"
+        [[ -s "$dest" ]] || fail "downloaded file is empty: $dest"
     fi
 }
 
@@ -58,16 +93,18 @@ chmod +x "$LD_TOOL"
 
 APPIMAGE_NAME="KSnake-$VERSION-x86_64.AppImage"
 APPDIR="$CACHE_DIR/KSnake-$VERSION-x86_64.AppDir"
-rm -rf "$APPDIR"
+safe_rm "$APPDIR"
 mkdir -p "$APPDIR/usr/bin/assets"
 mkdir -p "$APPDIR/usr/share/applications"
-mkdir -p "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
 cp "$LINUX_BUILD_DIR/snake" "$APPDIR/usr/bin/snake"
 cp "$ROOT/assets/font.ttf" "$APPDIR/usr/bin/assets/font.ttf"
+cp "$ROOT/VERSION" "$APPDIR/usr/bin/VERSION"
 
 cat > "$APPDIR/usr/bin/KSnake.sh" <<'EOF'
 #!/bin/sh
+# AppRun указывает сюда симлинком. Рядом с exe лежат assets/font.ttf и VERSION,
+# поэтому запускаться нужно из своего каталога: иначе шрифт не находится.
 SELF="$(readlink -f "$0")"
 DIR="$(dirname "$SELF")"
 cd "$DIR" || exit 1
@@ -75,23 +112,32 @@ exec ./snake "$@"
 EOF
 chmod +x "$APPDIR/usr/bin/KSnake.sh"
 
+# Exec обязан быть абсолютным путём либо именем, которое ищется в $PATH.
+# Голое "KSnake.sh" не то и не другое: в $PATH его нет, и запись в меню
+# не запускает игру. Внутри AppImage корнем является AppRun, поэтому указываем
+# его — и создаём сами: linuxdeploy ищет файл из Exec в appdir и без симлинка
+# падает с "could not find suitable executable for Exec entry".
+ln -sf usr/bin/KSnake.sh "$APPDIR/AppRun"
+
 cat > "$APPDIR/usr/share/applications/KSnake.desktop" <<EOF
 [Desktop Entry]
 Name=KSnake
 Comment=Classic snake game written in C++ with SDL2
-Exec=KSnake.sh
+Exec=AppRun
 Icon=ksnake
 Type=Application
 Categories=Game;
 EOF
 
+for icon_size in 16 24 32 48 64 128 256; do
+    icon_dir="$APPDIR/usr/share/icons/hicolor/${icon_size}x${icon_size}/apps"
+    mkdir -p "$icon_dir"
+    cp "$ROOT/assets/ksnake-$icon_size.png" "$icon_dir/ksnake.png"
+done
 ICON_PNG="$APPDIR/usr/share/icons/hicolor/256x256/apps/ksnake.png"
-convert -size 256x256 xc:'#141414' \
-    -fill '#2ECC71' -draw "rectangle 112,32 143,63" \
-    -fill '#111111' -draw "rectangle 121,40 127,46" -draw "rectangle 136,40 142,46" \
-    -fill '#27AE60' -draw "rectangle 112,64 143,95" \
-    -fill '#229954' -draw "rectangle 112,96 143,127" \
-    "$ICON_PNG"
+# linuxdeploy создаёт .DirIcon сам, но без готового файла берёт 64x64 —
+# задаём 256x256 явно, иначе иконка мылится в превью файловых менеджеров.
+cp "$ROOT/assets/ksnake-256.png" "$APPDIR/.DirIcon"
 
 say "Packaging AppImage..."
 (
@@ -131,7 +177,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 EOF
 
-rm -rf "$WIN_BUILD_DIR"
+safe_rm "$WIN_BUILD_DIR"
 cmake -S "$ROOT" -B "$WIN_BUILD_DIR" \
     -DCMAKE_TOOLCHAIN_FILE="$CACHE_DIR/toolchain-mingw.cmake" \
     -DCMAKE_BUILD_TYPE=Release \
@@ -141,20 +187,24 @@ cmake --build "$WIN_BUILD_DIR" -j"$(nproc)" >/dev/null
 [[ -x "$WIN_BUILD_DIR/snake.exe" ]] || fail "windows build did not produce snake.exe"
 
 WIN_DIR="$CACHE_DIR/KSnake-windows"
-rm -rf "$WIN_DIR"
+safe_rm "$WIN_DIR"
 mkdir -p "$WIN_DIR/assets"
 cp "$WIN_BUILD_DIR/snake.exe" "$WIN_DIR/KSnake.exe"
 cp "$SDL_SRC/bin/SDL2.dll" "$WIN_DIR/"
 cp "$TTF_SRC/bin/SDL2_ttf.dll" "$WIN_DIR/"
 cp "$ROOT/assets/font.ttf" "$WIN_DIR/assets/font.ttf"
+cp "$ROOT/VERSION" "$WIN_DIR/VERSION"
+cp "$ICON_ICO" "$WIN_DIR/ksnake.ico"
 
 WIN_EXE="KSnake-$VERSION-windows-x86_64.exe"
 say "Building single-file Windows EXE..."
 cat > "$WIN_DIR/KSnake.rc" <<'EOF'
+1 ICON "ksnake.ico"
 101 RCDATA "KSnake.exe"
 102 RCDATA "SDL2.dll"
 103 RCDATA "SDL2_ttf.dll"
 104 RCDATA "assets/font.ttf"
+105 RCDATA "VERSION"
 EOF
 x86_64-w64-mingw32-windres -O coff "$WIN_DIR/KSnake.rc" -o "$WIN_DIR/KSnake.res"
 x86_64-w64-mingw32-g++ -O2 -s -municode -mwindows -static \
