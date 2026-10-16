@@ -168,8 +168,12 @@ Environment variables:
 
 `KS_SOFT=1` must be set for deterministic dimension checks: on a real window the
 compositor (e.g. Hyprland through XWayland) may resize the window to 960x540, so the
-captured frame would not match the requested size. Compile-time dimensions of interest
-are 400x360, 960x540 and 1920x1080. The matrix uses frame 240 (frame 0 can be torn).
+captured frame would not match the requested size. To keep this deterministic the harness
+sets `SDL_VIDEODRIVER=dummy` itself when `KS_SOFT` is set and the driver is not already
+chosen: the offscreen path needs no real window and must not depend on the compositor.
+(The game otherwise prefers X11/XWayland on Wayland sessions to screen-anchor the
+background; see the README feature notes.) Compile-time dimensions of interest are
+400x360, 960x540 and 1920x1080. The matrix uses frame 240 (frame 0 can be torn).
 
 ## 7. Save-atomicity fuzzer
 
