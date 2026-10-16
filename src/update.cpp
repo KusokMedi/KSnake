@@ -8,8 +8,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <fstream>
-#include <iterator>
+#include <sstream>
+#include <string>
 #include <thread>
 
 #include "util.h"
@@ -56,16 +56,12 @@ std::string http_get(const std::string& url, const std::string& out_path,
     int rc = 0;
 #ifdef _WIN32
     const std::string script = out_path + ".ps1";
-    {
-        std::ofstream f(script, std::ios::binary);
-        if (!f) return std::string();
-        f << ps_fetch_script();
-    }
+    if (!write_text_file(script, ps_fetch_script())) return std::string();
     bool ran = run_process({"powershell", "-NoProfile", "-NonInteractive",
                             "-ExecutionPolicy", "Bypass", "-File", script, url, out_path,
                             user_agent},
                            &rc);
-    std::remove(script.c_str());
+    remove_file(script);
     if (!ran || rc != 0) return std::string();
 #else
     // Никакой оболочки: кавычки и `;` в пути остаются аргументами.
@@ -77,9 +73,8 @@ std::string http_get(const std::string& url, const std::string& out_path,
         return std::string();
     }
 #endif
-    std::ifstream f(out_path, std::ios::binary);
-    if (!f) return std::string();
-    std::string body((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    std::string body;
+    if (!read_text_file(out_path, body)) return std::string();
     if (body.size() >= 3 && static_cast<uint8_t>(body[0]) == 0xEF &&
         static_cast<uint8_t>(body[1]) == 0xBB && static_cast<uint8_t>(body[2]) == 0xBF) {
         body.erase(0, 3);
@@ -90,7 +85,9 @@ std::string http_get(const std::string& url, const std::string& out_path,
 // Запрос без токена упирается в лимит GitHub 60/час на IP, поэтому ответ
 // разбираем осторожно: любое неожиданное поле трактуем как ошибку.
 bool extract_version(const json& j, int remote[3]) {
-    for (const char* key : {"name", "tag_name"}) {
+    // tag_name — машинная версия релиза (v1.2.3), name — свободный заголовок
+    // ("Hotfix for 1.0"), поэтому tag_name надёжнее и проверяется первым.
+    for (const char* key : {"tag_name", "name"}) {
         auto it = j.find(key);
         if (it == j.end() || !it->is_string()) continue;
         if (parse_version(it->get<std::string>(), remote)) return true;
@@ -128,9 +125,12 @@ std::string UpdateChecker::cache_path() const {
 
 void UpdateChecker::save_cache(uint64_t epoch, UpdateState st, const std::string& ver,
                                const std::string& url) const {
-    std::ofstream f(cache_path());
-    if (!f) return;
-    f << epoch << ' ' << static_cast<int>(st) << ' ' << ver << ' ' << url << std::endl;
+    // Пустая версия пишется как "-": иначе поле пропадает, URL сдвигается на
+    // место версии, и restore_cached читает его как версию (Unknown терялся).
+    std::ostringstream line;
+    line << epoch << ' ' << static_cast<int>(st) << ' '
+         << (ver.empty() ? std::string("-") : ver) << ' ' << url << '\n';
+    write_text_file(cache_path(), line.str());
 }
 
 void UpdateChecker::set_result(UpdateState st, const std::string& ver, const std::string& url) {
@@ -143,12 +143,13 @@ void UpdateChecker::set_result(UpdateState st, const std::string& ver, const std
 void UpdateChecker::restore_cached() {
     // результат прошлой проверки восстанавливаем сразу: если игра устарела,
     // пункт меню жёлтый уже на первом кадре, даже если запрос ещё не ушёл
-    std::ifstream f(cache_path());
-    if (!f) return;
+    std::string body;
+    if (!read_text_file(cache_path(), body)) return;
+    std::istringstream in(body);
     uint64_t epoch = 0;
     std::string st_token;
     std::string ver;
-    if (!(f >> epoch >> st_token >> ver)) return;
+    if (!(in >> epoch >> st_token >> ver)) return;
     // Состояние из кэша не доверяем: его всё равно пересчитывает
     // compare_versions. Поэтому токен читаем строкой и разбираем сами — битое
     // поле вроде "abc" больше не роняет разбор и не выбрасывает хорошую версию.
@@ -157,7 +158,7 @@ void UpdateChecker::restore_cached() {
         st = st_token[0] - '0';
     }
     std::string rest;
-    std::getline(f, rest);
+    std::getline(in, rest);
     std::string url = trim_str(rest);
 
     int remote[3] = {0, 0, 0};
@@ -185,17 +186,18 @@ void UpdateChecker::mark_checked() {
     uint64_t old_epoch = 0;
     int old_st = -1;
     std::string old_ver, old_url;
-    {
-        std::ifstream f(cache_path());
-        if (!(f >> old_epoch >> old_st >> old_ver)) old_st = -1;
+    std::string body;
+    if (read_text_file(cache_path(), body)) {
+        std::istringstream in(body);
+        if (!(in >> old_epoch >> old_st >> old_ver)) old_st = -1;
         std::string rest;
-        std::getline(f, rest);
+        std::getline(in, rest);
         old_url = trim_str(rest);
     }
-    std::ofstream f(cache_path());
-    if (!f) return;
-    f << static_cast<uint64_t>(std::time(nullptr)) << ' ' << old_st << ' '
-      << (old_ver.empty() ? std::string("-") : old_ver) << ' ' << old_url << std::endl;
+    std::ostringstream line;
+    line << static_cast<uint64_t>(std::time(nullptr)) << ' ' << old_st << ' '
+         << (old_ver.empty() ? std::string("-") : old_ver) << ' ' << old_url << '\n';
+    write_text_file(cache_path(), line.str());
 }
 
 bool UpdateChecker::background_due(uint64_t now_ms) const {
@@ -207,9 +209,12 @@ void UpdateChecker::schedule_next_background(uint64_t now_ms) {
 }
 
 void UpdateChecker::start_background_cycle(uint64_t now_ms) {
-    std::ifstream f(cache_path());
     uint64_t last = 0;
-    f >> last;
+    std::string body;
+    if (read_text_file(cache_path(), body)) {
+        std::istringstream in(body);
+        in >> last;
+    }
 
     uint64_t now_epoch = static_cast<uint64_t>(std::time(nullptr));
     if (now_epoch >= last && now_epoch - last >= AUTO_UPDATE_PERIOD_MS / 1000) {

@@ -19,6 +19,15 @@ std::string format_version(const int v[3]);
 // <0 — a старше b, 0 — равны, >0 — a новее b.
 int compare_versions(const int a[3], const int b[3]);
 
+// Чтение/запись файла по UTF-8 пути. SDL_GetPrefPath/SDL_GetBasePath отдают
+// UTF-8, а std::ifstream/ofstream с узкой строкой на Windows трактуют байты как
+// ANSI и не находят файл, если профиль пользователя не-ASCII. Поэтому на Windows
+// путь переводится в UTF-16 и файл открывается через _wfopen. read_text_file
+// читает всё целиком, write_text_file перезаписывает (append — дописывает).
+bool read_text_file(const std::string& path, std::string& out);
+bool write_text_file(const std::string& path, const std::string& body, bool append = false);
+bool remove_file(const std::string& path);
+
 // Запуск внешней программы без оболочки: args[0] — путь к программе, остальное
 // — аргументы. Оболочки нет, поэтому кавычки, `;`, `&` и прочие спецсимволы в URL
 // или в пути остаются данными и командой стать не могут.

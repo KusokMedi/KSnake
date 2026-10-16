@@ -2,7 +2,7 @@
 
 #include <SDL.h>
 
-#include <fstream>
+#include <string>
 
 #include "util.h"
 
@@ -13,10 +13,10 @@ constexpr const char* APP_VERSION_FALLBACK = "1.0";
 constexpr const char* APP_VERSION_FILE = "VERSION";
 
 std::string read_version_file(const std::string& path) {
-    std::ifstream f(path);
-    std::string line;
-    if (!f || !std::getline(f, line)) return std::string();
-    return trim_str(line);
+    std::string body;
+    if (!read_text_file(path, body)) return std::string();
+    size_t end = body.find_first_of("\r\n");
+    return trim_str(body.substr(0, end));
 }
 
 }  // namespace

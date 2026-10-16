@@ -1,6 +1,7 @@
 #include "util.h"
 
 #include <cerrno>
+#include <cstdio>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -81,7 +82,55 @@ std::wstring utf8_to_wide(const std::string& s) {
     MultiByteToWideChar(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), w.data(), n);
     return w;
 }
+
+namespace {
+FILE* open_utf8(const std::string& path, const wchar_t* mode) {
+    return _wfopen(utf8_to_wide(path).c_str(), mode);
+}
+}  // namespace
+#else
+namespace {
+FILE* open_utf8(const std::string& path, const char* mode) {
+    return std::fopen(path.c_str(), mode);
+}
+}  // namespace
 #endif
+
+bool read_text_file(const std::string& path, std::string& out) {
+    out.clear();
+#ifdef _WIN32
+    FILE* f = open_utf8(path, L"rb");
+#else
+    FILE* f = open_utf8(path, "rb");
+#endif
+    if (!f) return false;
+    char buf[8192];
+    size_t n = 0;
+    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) out.append(buf, n);
+    bool ok = std::ferror(f) == 0;
+    std::fclose(f);
+    return ok;
+}
+
+bool write_text_file(const std::string& path, const std::string& body, bool append) {
+#ifdef _WIN32
+    FILE* f = open_utf8(path, append ? L"ab" : L"wb");
+#else
+    FILE* f = open_utf8(path, append ? "ab" : "wb");
+#endif
+    if (!f) return false;
+    bool ok = body.empty() || std::fwrite(body.data(), 1, body.size(), f) == body.size();
+    std::fclose(f);
+    return ok;
+}
+
+bool remove_file(const std::string& path) {
+#ifdef _WIN32
+    return _wremove(utf8_to_wide(path).c_str()) == 0;
+#else
+    return std::remove(path.c_str()) == 0;
+#endif
+}
 
 namespace {
 

@@ -5,7 +5,6 @@
 
 #include <cerrno>
 #include <cstdio>
-#include <fstream>
 #include <string>
 
 #ifdef _WIN32
@@ -25,6 +24,18 @@ using json = nlohmann::json;
 
 namespace {
 
+#ifdef _WIN32
+// Пути приходят в UTF-8 (SDL_GetPrefPath), поэтому на Windows их нужно
+// переводить в UTF-16: узкий access на не-ASCII путях не работает.
+int path_access(const std::string& p, int mode) {
+    return _waccess(utf8_to_wide(p).c_str(), mode);
+}
+#else
+int path_access(const std::string& p, int mode) {
+    return ::access(p.c_str(), mode);
+}
+#endif
+
 // Рекорд пишется через временный файл. Прямая запись приводила к битому файлу,
 // если процесс убивали или вылетал посреди записи (164 из 3000 прогонов):
 // рекорд молча терялся. rename() атомарен, поэтому читатель видит либо старый,
@@ -38,7 +49,7 @@ namespace {
 // пустой файл, если система выключилась сразу после игры.
 bool write_file_synced(const std::string& path, const std::string& body) {
 #ifdef _WIN32
-    FILE* f = std::fopen(path.c_str(), "wb");
+    FILE* f = _wfopen(utf8_to_wide(path).c_str(), L"wb");
     if (!f) return false;
     bool ok = std::fwrite(body.data(), 1, body.size(), f) == body.size();
     if (std::fflush(f) != 0) ok = false;
@@ -69,7 +80,8 @@ bool write_file_synced(const std::string& path, const std::string& body) {
 // отдельный вызов с MOVEFILE_REPLACE_EXISTING.
 bool replace_file(const std::string& tmp, const std::string& path) {
 #ifdef _WIN32
-    return MoveFileExA(tmp.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING) != 0;
+    return MoveFileExW(utf8_to_wide(tmp).c_str(), utf8_to_wide(path).c_str(),
+                       MOVEFILE_REPLACE_EXISTING) != 0;
 #else
     return std::rename(tmp.c_str(), path.c_str()) == 0;
 #endif
@@ -86,11 +98,11 @@ std::string user_pref_dir() {
 }
 
 int load_best_score(const std::string& path) {
-    std::ifstream f(path);
-    if (!f) return 0;
+    std::string body;
+    if (!read_text_file(path, body)) return 0;
     json j;
     try {
-        f >> j;
+        j = json::parse(body);
     } catch (...) {
         return 0;
     }
@@ -119,11 +131,11 @@ void save_best_score(const std::string& path, int score) {
     // Файл, помеченный игроком read-only, не трогаем. rename() на POSIX
     // перезаписывает цель независимо от её прав — важны только права на каталог,
     // — поэтому флаг проверяем сами, иначе атомарность тихо сломала бы его.
-    if (access(path.c_str(), F_OK) == 0 && access(path.c_str(), W_OK) != 0) return;
+    if (path_access(path, F_OK) == 0 && path_access(path, W_OK) != 0) return;
     if (!write_file_synced(tmp, body) || !replace_file(tmp, path)) {
         // Не сработало — убираем мусор, но старый scores.json не трогаем: он
         // остаётся целым, это и есть смысл атомарной записи.
-        std::remove(tmp.c_str());
+        remove_file(tmp);
     }
 }
 

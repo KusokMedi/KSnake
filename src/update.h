@@ -30,7 +30,6 @@ public:
     const std::string& url() const { return url_; }
     const std::string& note() const { return note_; }
     float glow() const { return glow_; }
-    bool automatic() const { return automatic_; }
 
     // Состояние всегда пересчитывается по текущей версии: сохранённый результат
     // мог устареть (например, игру обновили или откатили).
