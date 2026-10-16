@@ -299,7 +299,7 @@ void test_growth() {
         g.food_ = {6, 5};
         StepOutcome out = g.step();
         CHECK(out.kind == StepKind::AteFood, "eating: AteFood");
-        CHECK(out.score == 0, "score in outcome is the score BEFORE the step");
+        CHECK(out.score == 1, "score in outcome is the score AFTER the step");
         CHECK(g.score() == 1, "score incremented to 1");
         CHECK(g.snake().size() == 4, "length grew by 1");
     }

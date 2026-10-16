@@ -53,9 +53,12 @@ int run(int argc, char* argv[]) {
     FILE* log_fp = nullptr;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--debug") == 0 && i + 1 < argc) {
-            log_fp = std::fopen(argv[++i], "w");
-            if (!log_fp) {
+            FILE* f = std::fopen(argv[++i], "w");
+            if (!f) {
                 fprintf(stderr, "Cannot open debug log: %s\n", argv[i]);
+            } else {
+                if (log_fp) std::fclose(log_fp);
+                log_fp = f;
             }
         }
     }
@@ -311,6 +314,9 @@ int run(int argc, char* argv[]) {
             game.reset();
             paused = false;
             game_over_active = false;
+            game_won_active = false;
+            igt_ms = 0;
+            move_acc = 0;
             screen_state.screen = Screen::Game;
         } else if (index == MENU_CREDITS) {
             screen_state.screen = Screen::Credits;
@@ -402,6 +408,8 @@ int run(int argc, char* argv[]) {
                     }
                 }
             } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                // только ЛКМ: правый клик не должен жать оверлеи и подсказки
+                if (event.button.button != SDL_BUTTON_LEFT) continue;
                 SDL_Point pt{event.button.x, event.button.y};
                 if (screen_state.screen == Screen::Game) {
                     int oidx = overlay_at(screen_state, &pt, screen_state.screen, paused,
@@ -413,43 +421,41 @@ int run(int argc, char* argv[]) {
                         int idx = hint_at(screen_state, &pt, screen_state.screen);
                         if (idx >= 0) run_hint(screen_state.hint_actions[idx]);
                     }
-                } else if (event.button.button == SDL_BUTTON_LEFT) {
-                    if (screen_state.screen == Screen::Menu) {
-                        MenuLayout ml = menu_layout(ui, ui.lay_w(), ui.lay_h());
-                        for (int i = 0; i < MENU_COUNT; ++i) {
-                            if (SDL_PointInRect(&pt, &ml.buttons[i])) {
-                                screen_state.menu_index = i;
-                                activate(i);
-                                break;
-                            }
+                } else if (screen_state.screen == Screen::Menu) {
+                    MenuLayout ml = menu_layout(ui, ui.lay_w(), ui.lay_h());
+                    for (int i = 0; i < MENU_COUNT; ++i) {
+                        if (SDL_PointInRect(&pt, &ml.buttons[i])) {
+                            screen_state.menu_index = i;
+                            activate(i);
+                            break;
                         }
-                    } else if (screen_state.screen == Screen::Credits) {
-                        SDL_Rect link_rects[CREDIT_LINK_COUNT];
-                        credit_link_rects(ui, ui.lay_w(), ui.lay_h(), link_rects);
-                        bool opened = false;
-                        for (int i = 0; i < CREDIT_LINK_COUNT; ++i) {
-                            if (SDL_PointInRect(&pt, &link_rects[i])) {
-                                open_url(CREDIT_LINKS[i].url, log_line);
-                                opened = true;
-                                break;
-                            }
-                        }
-                        if (!opened) {
-                            screen_to_menu();
-                        }
-                    } else if (screen_state.screen == Screen::Update) {
-                        if (screen_state.update_link_hit.w > 0 &&
-                            SDL_PointInRect(&pt, &screen_state.update_link_hit) &&
-                            !updates.url().empty()) {
-                            open_url(updates.url(), log_line);
-                        } else {
-                            screen_state.update_link_hover = -1;
-                            screen_to_menu();
-                        }
-                    } else {
-                        int idx = hint_at(screen_state, &pt, screen_state.screen);
-                        if (idx >= 0) run_hint(screen_state.hint_actions[idx]);
                     }
+                } else if (screen_state.screen == Screen::Credits) {
+                    SDL_Rect link_rects[CREDIT_LINK_COUNT];
+                    credit_link_rects(ui, ui.lay_w(), ui.lay_h(), link_rects);
+                    bool opened = false;
+                    for (int i = 0; i < CREDIT_LINK_COUNT; ++i) {
+                        if (SDL_PointInRect(&pt, &link_rects[i])) {
+                            open_url(CREDIT_LINKS[i].url, log_line);
+                            opened = true;
+                            break;
+                        }
+                    }
+                    if (!opened) {
+                        screen_to_menu();
+                    }
+                } else if (screen_state.screen == Screen::Update) {
+                    if (screen_state.update_link_hit.w > 0 &&
+                        SDL_PointInRect(&pt, &screen_state.update_link_hit) &&
+                        !updates.url().empty()) {
+                        open_url(updates.url(), log_line);
+                    } else {
+                        screen_state.update_link_hover = -1;
+                        screen_to_menu();
+                    }
+                } else {
+                    int idx = hint_at(screen_state, &pt, screen_state.screen);
+                    if (idx >= 0) run_hint(screen_state.hint_actions[idx]);
                 }
             } else if (event.type == SDL_KEYDOWN) {
                 if (event.key.repeat) continue;

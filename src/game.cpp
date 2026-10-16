@@ -94,6 +94,10 @@ StepOutcome Game::step() {
     } else {
         snake_.pop_back();
     }
+    // после шага: на AteFood/Won счёт и интервал уже изменились, а лог пишет
+    // именно эти поля
+    out.score = score_;
+    out.move_interval = move_interval_;
     return out;
 }
 

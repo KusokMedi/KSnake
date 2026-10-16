@@ -326,7 +326,6 @@ void draw_updates(Ui& ui, ScreenState& st, const UpdateChecker& updates,
             }
             break;
         case UpdateState::Available:
-        case UpdateState::Unknown:
             status_text = "You need to update";
             status_r = kGood[0];
             status_g = kGood[1];
@@ -335,6 +334,16 @@ void draw_updates(Ui& ui, ScreenState& st, const UpdateChecker& updates,
             if (!updates.version().empty()) {
                 version_line += ", but latest is " + updates.version();
             }
+            have_link = !updates.url().empty();
+            break;
+        case UpdateState::Unknown:
+            // не то же самое, что Available: версию разобрать не удалось,
+            // поэтому не утверждаем, что обновиться нужно
+            status_text = "Could not determine latest version";
+            status_r = kDim[0];
+            status_g = kDim[1];
+            status_b = kDim[2];
+            version_line = "Your version is " + local_str;
             have_link = !updates.url().empty();
             break;
         default:
@@ -540,12 +549,12 @@ void draw_menu(Ui& ui, ScreenState& st, const ScreenFrame& f) {
 }  // namespace
 
 const MenuItem MENU_ITEMS[MENU_COUNT] = {
-    {"Play", false},
-    {"Skins", true},
-    {"Settings", true},
-    {"Credits", false},
-    {"Check for updates", false},
-    {"Exit", false},
+    {"Play"},
+    {"Skins"},
+    {"Settings"},
+    {"Credits"},
+    {"Check for updates"},
+    {"Exit"},
 };
 
 const CreditLink CREDIT_LINKS[CREDIT_LINK_COUNT] = {
@@ -629,6 +638,10 @@ void render_screen(Ui& ui, ScreenState& st, const ScreenFrame& f) {
     if (st.screen != Screen::Game && st.screen != Screen::ExitPrompt) {
         ui.draw_checker(ui.lay_w(), ui.lay_h());
     }
+
+    // Сбрасываем подсказки каждый кадр: у игрового экрана их нет, и без сброса
+    // оставались прямоугольники прошлого экрана — по ним можно было кликнуть.
+    st.hint_count = 0;
 
     switch (st.screen) {
         case Screen::Game:

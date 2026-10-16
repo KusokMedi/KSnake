@@ -32,7 +32,6 @@ constexpr int MENU_COUNT = 6;
 
 struct MenuItem {
     const char* label;
-    bool placeholder;
 };
 
 extern const MenuItem MENU_ITEMS[MENU_COUNT];
