@@ -590,6 +590,15 @@ int run(int argc, char* argv[]) {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
+        // Экранную привязку фона держим свежей каждый кадр: композитор двигает
+        // окно при ресайзе, а события MOVED/SIZE_CHANGED могут отставать или
+        // схлопываться, из-за чего узор на кадр «дёргался» бы.
+        {
+            int ox = 0, oy = 0;
+            SDL_GetWindowPosition(window, &ox, &oy);
+            ui.set_screen_origin(ox, oy);
+        }
+
         ScreenFrame frame;
         frame.game = &game;
         frame.updates = &updates;
