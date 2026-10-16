@@ -76,6 +76,20 @@ int run(int argc, char* argv[]) {
         log_event("%s", msg.c_str());
     };
 
+#ifndef _WIN32
+    // На native Wayland SDL не сообщает позицию окна, поэтому фоновый узор нельзя
+    // привязать к экрану. Если доступен XWayland (есть DISPLAY), идём через X11:
+    // там SDL_GetWindowPosition работает. Форсируем только когда видео-драйвер не
+    // задан снаружи (тесты и пользовательские запуски со SDL_VIDEODRIVER — свято).
+    bool forced_x11 = false;
+    if (SDL_getenv("SDL_VIDEODRIVER") == nullptr && SDL_getenv("WAYLAND_DISPLAY") != nullptr &&
+        SDL_getenv("DISPLAY") != nullptr) {
+        SDL_setenv("SDL_VIDEODRIVER", "x11", 0);
+        forced_x11 = true;
+    }
+    if (forced_x11) log_event("VIDEO x11 (XWayland), screen-anchored background");
+#endif
+
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         if (log_fp) std::fclose(log_fp);
@@ -191,6 +205,9 @@ int run(int argc, char* argv[]) {
         int w = WIN_W, h = WIN_H;
         SDL_GetWindowSize(window, &w, &h);
         ui.apply_layout(w, h);
+        int wx = 0, wy = 0;
+        SDL_GetWindowPosition(window, &wx, &wy);
+        ui.set_screen_origin(wx, wy);
     };
 
     apply_window_layout();
@@ -368,6 +385,10 @@ int run(int argc, char* argv[]) {
                 if (event.window.event == SDL_WINDOWEVENT_RESIZED ||
                     event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
                     apply_window_layout();
+                } else if (event.window.event == SDL_WINDOWEVENT_MOVED) {
+                    // окно переехало (в т.ч. композитор подвинул его при ресайзе
+                    // от левого верхнего угла) — пересчитываем экранную привязку
+                    ui.set_screen_origin(event.window.data1, event.window.data2);
                 } else if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST ||
                            event.window.event == SDL_WINDOWEVENT_MINIMIZED) {
                     if (screen_state.screen == Screen::Game && !game_over_active &&

@@ -41,9 +41,15 @@ public:
 
     void apply_layout(int win_w, int win_h);
     void shuffle_checker();
+    // Экранная позиция клиентской области. Фоновый узор привязан к экрану, а не
+    // к окну: при ресайзе от левого верхнего угла окно двигает композитор, и без
+    // этой компенсации узор «уезжал» бы вместе с краем.
+    void set_screen_origin(int x, int y) {
+        screen_origin_x_ = x;
+        screen_origin_y_ = y;
+    }
 
     int px(int base) const;
-    float scale() const { return scale_; }
     int lay_w() const { return lay_w_; }
     int lay_h() const { return lay_h_; }
     int cell() const { return cell_; }
@@ -94,6 +100,8 @@ private:
     int lay_h_ = WIN_H;
     int checker_dx_ = 0;
     int checker_dy_ = 0;
+    int screen_origin_x_ = 0;
+    int screen_origin_y_ = 0;
     std::mt19937 rng_;
 };
 

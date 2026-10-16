@@ -97,10 +97,22 @@ void Ui::compute_layout(int win_w, int win_h) {
 void Ui::apply_layout(int win_w, int win_h) {
     lay_w_ = win_w < 1 ? 1 : win_w;
     lay_h_ = win_h < 1 ? 1 : win_h;
-    float s = std::min(static_cast<float>(lay_w_) / static_cast<float>(WIN_W),
-                       static_cast<float>(lay_h_) / static_cast<float>(WIN_H));
-    s = std::floor(s * 20.0f) / 20.0f;  // шаг 5%: реже пересоздаём шрифты
-    float next = std::max(0.6f, std::min(2.0f, s));
+    float raw = std::min(static_cast<float>(lay_w_) / static_cast<float>(WIN_W),
+                         static_cast<float>(lay_h_) / static_cast<float>(WIN_H));
+    float s = std::floor(raw * 20.0f) / 20.0f;  // шаг 5%: реже пересоздаём шрифты
+    // Крупнее базовой вёрстки не растягиваем: в фуллскрине интерфейс иначе
+    // выглядит огромным. До UI_SCALE_FULL держим 1.0 и уменьшаем только у совсем
+    // маленьких окон, линейно вниз до UI_SCALE_MIN на минимальном размере.
+    const float raw_min = std::min(static_cast<float>(MIN_WIN_W) / static_cast<float>(WIN_W),
+                                   static_cast<float>(MIN_WIN_H) / static_cast<float>(WIN_H));
+    float next;
+    if (s >= UI_SCALE_FULL) {
+        next = 1.0f;
+    } else {
+        float t = (s - raw_min) / (UI_SCALE_FULL - raw_min);
+        t = std::max(0.0f, std::min(1.0f, t));
+        next = UI_SCALE_MIN + (1.0f - UI_SCALE_MIN) * t;
+    }
     if (std::fabs(next - scale_) > 0.001f) {
         scale_ = next;
         refresh_fonts();
@@ -141,16 +153,19 @@ void Ui::draw_dim(uint8_t alpha) {
 
 void Ui::draw_checker(int w, int h, int sq) {
     if (sq < 1) sq = 1;
-    // Клетка i занимает [dx + i*sq, ...), поэтому сетка может начинаться
-    // со случайного сдвига и не привязываться к краю окна.
-    int i0 = static_cast<int>(std::floor(-static_cast<double>(checker_dx_) / sq));
-    int j0 = static_cast<int>(std::floor(-static_cast<double>(checker_dy_) / sq));
-    for (int j = j0; j * sq + checker_dy_ < h; ++j) {
-        int y = j * sq + checker_dy_;
+    // Клетка i занимает [dx + i*sq, ...). Фазу компенсируем на экранную позицию
+    // окна, чтобы сетка была закреплена на экране (а не на клиенте) и не
+    // смещалась при ресайзе от левого верхнего угла.
+    int dx = ((checker_dx_ - screen_origin_x_) % sq + sq) % sq;
+    int dy = ((checker_dy_ - screen_origin_y_) % sq + sq) % sq;
+    int i0 = static_cast<int>(std::floor(-static_cast<double>(dx) / sq));
+    int j0 = static_cast<int>(std::floor(-static_cast<double>(dy) / sq));
+    for (int j = j0; j * sq + dy < h; ++j) {
+        int y = j * sq + dy;
         int fh = std::min(sq, h - y);
         if (fh < 1) break;
-        for (int i = i0; i * sq + checker_dx_ < w; ++i) {
-            int x = i * sq + checker_dx_;
+        for (int i = i0; i * sq + dx < w; ++i) {
+            int x = i * sq + dx;
             int fw = std::min(sq, w - x);
             if (fw < 1) break;
             uint8_t c = (((i + j) % 2 + 2) % 2 == 0) ? 8 : 16;

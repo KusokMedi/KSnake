@@ -17,6 +17,13 @@ constexpr int CHECKER_SQ = 64;
 constexpr int MIN_WIN_W = 400;
 constexpr int MIN_WIN_H = 360;
 
+// Масштаб интерфейса. Базовая вёрстка рассчитана на WIN_W x WIN_H; крупнее не
+// растягиваем, иначе в фуллскрине интерфейс выглядит огромным. До UI_SCALE_FULL
+// от базового размера держим 1.0 (обычные окна «нормальные») и уменьшаем только
+// у совсем маленьких окон, не ниже UI_SCALE_MIN.
+constexpr float UI_SCALE_MIN = 0.6f;
+constexpr float UI_SCALE_FULL = 0.75f;
+
 // assets/font.ttf — игровой спрайт-шрифт, в вёрстке используется как UI-шрифт;
 // остальные пути нужны для Windows-сборки, где шрифт лежит в ресурсах exe.
 constexpr const char* FONT_CANDIDATES[] = {

@@ -69,6 +69,17 @@ SNAKE_SETUP = """        game.snake_ = {{10, 7}, {9, 7}, {8, 7}, {8, 8}, {8, 9}}
 
 VERSION_HOOK = '    if (getenv("KS_VER")) app_version = getenv("KS_VER");\n'
 
+# KS_SOFT рендерит offscreen, поэтому окно и его видео-драйвер не важны. Фиксируем
+# dummy в самом начале run(): тест перестаёт зависеть от композитора и не открывает
+# реальных окон. Заодно отключает авто-выбор x11 под Wayland (привязка фона).
+SOFT_DRIVER = """    {
+        const char* ks_soft = std::getenv("KS_SOFT");
+        if (ks_soft && *ks_soft && !SDL_getenv("SDL_VIDEODRIVER")) {
+            SDL_setenv("SDL_VIDEODRIVER", "dummy", 1);
+        }
+    }
+"""
+
 # Компоновщик (Hyprland + XWayland) раздувает окно до 960x540, поэтому кадр в
 # реальном окне не равен запрошенному KS_W/KS_H. KS_SOFT=1 переключает игру на
 # offscreen software-рендер фиксированного размера: кадр тогда ровно WIN_W x WIN_H.
@@ -199,6 +210,8 @@ def generate():
                "private в game.h")
 
     main_cpp = os.path.join(OUT_DIR, "main.cpp")
+    patch_once(main_cpp, "int run(int argc, char* argv[]) {\n",
+               "int run(int argc, char* argv[]) {\n" + SOFT_DRIVER, "начало run()")
     patch_once(main_cpp, "std::string app_version = load_app_version(&version_source);",
                "std::string app_version = load_app_version(&version_source);\n" + VERSION_HOOK,
                "load_app_version")
