@@ -1,5 +1,5 @@
 // Юнит-тесты игровой логики KSnake (game.cpp не зависит от SDL).
-// Сборка: ./tests/build_unit.sh  →  ./tests/build/unit_game
+// Сборка и запуск: см. docs/TESTING.md (раздел 3).
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>

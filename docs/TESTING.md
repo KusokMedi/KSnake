@@ -83,9 +83,8 @@ Observed results with the current sources: `unit_game` 98/0, `unit_util` 126/0,
   `trim_str`, version-file loading and the signed `scores.json` format, and runs
   sub-process checks for the preference directory.
 
-> **Known discrepancy:** the `tests/unit_*.cpp` header comments point at
-> `./tests/build_unit.sh`. That script is not present in the repository; build the unit
-> tests with the commands above until it is restored or the comments are updated.
+> The `tests/unit_*.cpp` headers point here for their build and run commands; there is
+> no separate build script for them.
 
 ## 4. Headless robustness harness
 

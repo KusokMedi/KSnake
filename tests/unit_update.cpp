@@ -1,7 +1,7 @@
 // Юнит-тесты проверки обновлений KSnake (update.cpp).
 // Сетевой слой подменяется stub-ом curl на PATH, поэтому тесты ходят по
 // настоящему коду http_get -> файла -> JSON -> состояние.
-// Сборка: ./tests/build_unit.sh
+// Сборка и запуск: см. docs/TESTING.md (раздел 3).
 #include <unistd.h>
 
 #include <cstdio>

@@ -1,6 +1,6 @@
 // Юнит-тесты util/version/storage KSnake.
 // Требует SDL2 (storage/version используют SDL_GetPrefPath/SDL_GetBasePath).
-// Сборка: ./tests/build_unit.sh
+// Сборка и запуск: см. docs/TESTING.md (раздел 3).
 #include <sys/stat.h>
 #include <unistd.h>
 

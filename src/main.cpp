@@ -99,10 +99,10 @@ int run(int argc, char* argv[]) {
         if (log_fp) std::fclose(log_fp);
         return -1;
     }
-    // SDL_SetWindowMinimumSize is applied on the first frame.
-    // On the Wayland backend applying it at creation shrinks the window
-    // down to the minimum size (SDL behavior), so Wayland keeps no
-    // hard minimum; the layout is clamped internally instead.
+    // SDL_SetWindowMinimumSize is applied on the first frame, not at creation:
+    // on the Wayland backend applying it at creation shrank the window down to
+    // the minimum (SDL behavior). The layout also clamps internally, so a
+    // backend that ignores the minimum still cannot render a too-small board.
 
     int init_w = 0, init_h = 0;
     SDL_GetWindowSize(window, &init_w, &init_h);

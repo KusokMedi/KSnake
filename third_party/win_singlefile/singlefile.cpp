@@ -1,7 +1,7 @@
 // KSnake single-file launcher for Windows.
 //
-// The game exe, SDL2.dll, SDL2_ttf.dll and assets/font.ttf are embedded
-// into this binary as RCDATA resources (see build_release.sh --single-exe).
+// The game exe, SDL2.dll, SDL2_ttf.dll, assets/font.ttf and VERSION are
+// embedded into this binary as RCDATA resources (see build_release.sh).
 // At startup they are extracted to a temporary folder and the game is
 // launched from there, so the result behaves like a normal folder install
 // but ships as a single .exe. Scores are kept in %APPDATA% by the game
