@@ -22,10 +22,11 @@ Read this in [Русский](README_RU.md).
 - The `Check for updates` menu item turns yellow when a new release is available
 - The interface scales with the window but never larger than the base layout: fullscreen
   does not blow it up, and it only shrinks (down to a floor) on very small windows
-- The background is anchored to the screen and stays put when the window is resized from
-  any corner: on Wayland sessions the game uses X11 (XWayland) when available, because
-  SDL cannot report the window position on native Wayland. Without XWayland, or when
-  `SDL_VIDEODRIVER` is set, the default backend is used
+- The background is a static full-screen picture anchored to the screen centre (a cell is
+  centred on the middle of the screen); the window just shows its part, so the pattern does
+  not shift when the window is resized from any corner. On Wayland sessions the game uses
+  X11 (XWayland) when available, because SDL cannot report the window position on native
+  Wayland. Without XWayland, or when `SDL_VIDEODRIVER` is set, the default backend is used
 - Fullscreen support (F11)
 - Cross-platform: Linux and Windows
 - Release script producing an AppImage and a single-file Windows `.exe`

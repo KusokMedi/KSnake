@@ -161,7 +161,7 @@ int run(int argc, char* argv[]) {
     const uint32_t seed = static_cast<uint32_t>(std::time(nullptr)) ^
                           static_cast<uint32_t>(SDL_GetTicks()) ^ std::random_device{}();
 
-    Ui ui(renderer, seed);
+    Ui ui(renderer);
     ui.set_logger(log_line);
     if (!ui.load_fonts()) {
         fprintf(stderr, "No usable font found. Tried:\n");
@@ -208,10 +208,14 @@ int run(int argc, char* argv[]) {
         int wx = 0, wy = 0;
         SDL_GetWindowPosition(window, &wx, &wy);
         ui.set_screen_origin(wx, wy);
+        int disp = SDL_GetWindowDisplayIndex(window);
+        SDL_Rect db{0, 0, 0, 0};
+        if (disp >= 0 && SDL_GetDisplayBounds(disp, &db) == 0) {
+            ui.ensure_background(db.w, db.h);
+        }
     };
 
     apply_window_layout();
-    ui.shuffle_checker();
 
     auto toggle_fullscreen = [&]() {
         if (SDL_SetWindowFullscreen(window, fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP) == 0) {
@@ -279,7 +283,6 @@ int run(int argc, char* argv[]) {
         screen_state.hint_hover = -1;
         screen_state.overlay_hover = -1;
         screen_state.overlay_button_count = 0;
-        ui.shuffle_checker();  // новый случайный сдвиг фона при возврате в меню
     };
 
     auto screen_to_menu = [&]() {

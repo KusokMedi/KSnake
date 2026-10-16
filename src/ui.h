@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <functional>
 #include <map>
-#include <random>
 #include <string>
 
 #include "config.h"
@@ -26,7 +25,7 @@ public:
     // Сообщения в лог отладки (--debug), который ведёт main.
     using LogFn = std::function<void(const std::string&)>;
 
-    Ui(SDL_Renderer* renderer, uint32_t seed);
+    Ui(SDL_Renderer* renderer);
     ~Ui();
 
     Ui(const Ui&) = delete;
@@ -40,10 +39,12 @@ public:
     void destroy();
 
     void apply_layout(int win_w, int win_h);
-    void shuffle_checker();
-    // Экранная позиция клиентской области. Фоновый узор привязан к экрану, а не
-    // к окну: при ресайзе от левого верхнего угла окно двигает композитор, и без
-    // этой компенсации узор «уезжал» бы вместе с краем.
+    // Строит статичный фон размером с экран (один раз): узор симметричен
+    // относительно центра экрана. Окно показывает свою часть этой картинки,
+    // поэтому при движении/ресайзе узор не пересчитывается и не дёргается.
+    void ensure_background(int screen_w, int screen_h);
+    // Экранная позиция клиентской области — по ней из статичного фона берётся
+    // видимый кусок.
     void set_screen_origin(int x, int y) {
         screen_origin_x_ = x;
         screen_origin_y_ = y;
@@ -98,11 +99,11 @@ private:
     int offset_y_ = 0;
     int lay_w_ = WIN_W;
     int lay_h_ = WIN_H;
-    int checker_dx_ = 0;
-    int checker_dy_ = 0;
     int screen_origin_x_ = 0;
     int screen_origin_y_ = 0;
-    std::mt19937 rng_;
+    SDL_Texture* bg_tex_ = nullptr;
+    int bg_screen_w_ = 0;
+    int bg_screen_h_ = 0;
 };
 
 }  // namespace ks

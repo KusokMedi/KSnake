@@ -15,7 +15,7 @@ uint8_t mix_bg(uint8_t c, uint8_t a) {
     return static_cast<uint8_t>((c * a + 26 * (255 - a)) / 255);
 }
 
-Ui::Ui(SDL_Renderer* renderer, uint32_t seed) : renderer_(renderer), rng_(seed) {}
+Ui::Ui(SDL_Renderer* renderer) : renderer_(renderer) {}
 
 void Ui::set_logger(LogFn log) {
     log_ = std::move(log);
@@ -58,6 +58,11 @@ bool Ui::load_fonts() {
 }
 
 void Ui::destroy() {
+    if (bg_tex_) {
+        SDL_DestroyTexture(bg_tex_);
+        bg_tex_ = nullptr;
+        bg_screen_w_ = bg_screen_h_ = 0;
+    }
     drop_text_cache();
     for (auto& kv : font_cache_) {
         if (kv.second) TTF_CloseFont(kv.second);
@@ -121,14 +126,47 @@ void Ui::apply_layout(int win_w, int win_h) {
     compute_layout(lay_w_, lay_h_);
 }
 
-void Ui::shuffle_checker() {
-    if (CHECKER_SQ < 1) {
-        checker_dx_ = checker_dy_ = 0;
+void Ui::ensure_background(int screen_w, int screen_h) {
+    if (screen_w < 1 || screen_h < 1) return;
+    if (bg_tex_ && screen_w == bg_screen_w_ && screen_h == bg_screen_h_) return;
+    if (bg_tex_) {
+        SDL_DestroyTexture(bg_tex_);
+        bg_tex_ = nullptr;
+        bg_screen_w_ = bg_screen_h_ = 0;
+    }
+    int sq = CHECKER_SQ < 1 ? 1 : CHECKER_SQ;
+    SDL_Texture* tex = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888,
+                                         SDL_TEXTUREACCESS_TARGET, screen_w, screen_h);
+    if (!tex) return;
+    if (SDL_SetRenderTarget(renderer_, tex) != 0) {
+        SDL_DestroyTexture(tex);
         return;
     }
-    std::uniform_int_distribution<int> dist(0, CHECKER_SQ - 1);
-    checker_dx_ = dist(rng_);
-    checker_dy_ = dist(rng_);
+    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+    SDL_RenderClear(renderer_);
+    // Якорь — центр экрана: центр экрана совпадает с центром клетки, узор
+    // симметричен. Дальше картинка статична в координатах экрана.
+    int dx = ((screen_w / 2 - sq / 2) % sq + sq) % sq;
+    int dy = ((screen_h / 2 - sq / 2) % sq + sq) % sq;
+    int i0 = static_cast<int>(std::floor(-static_cast<double>(dx) / sq));
+    int j0 = static_cast<int>(std::floor(-static_cast<double>(dy) / sq));
+    for (int j = j0; j * sq + dy < screen_h; ++j) {
+        int y = j * sq + dy;
+        int fh = std::min(sq, screen_h - y);
+        if (fh < 1) break;
+        for (int i = i0; i * sq + dx < screen_w; ++i) {
+            int x = i * sq + dx;
+            int fw = std::min(sq, screen_w - x);
+            if (fw < 1) break;
+            uint8_t c = (((i + j) % 2 + 2) % 2 == 0) ? 8 : 16;
+            fill_rect(x, y, fw, fh, c, c, c);
+        }
+    }
+    SDL_SetRenderTarget(renderer_, nullptr);
+    SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_NONE);
+    bg_tex_ = tex;
+    bg_screen_w_ = screen_w;
+    bg_screen_h_ = screen_h;
 }
 
 void Ui::fill_rect(int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b) {
@@ -153,11 +191,26 @@ void Ui::draw_dim(uint8_t alpha) {
 
 void Ui::draw_checker(int w, int h, int sq) {
     if (sq < 1) sq = 1;
-    // Клетка i занимает [dx + i*sq, ...). Фазу компенсируем на экранную позицию
-    // окна, чтобы сетка была закреплена на экране (а не на клиенте) и не
-    // смещалась при ресайзе от левого верхнего угла.
-    int dx = ((checker_dx_ - screen_origin_x_) % sq + sq) % sq;
-    int dy = ((checker_dy_ - screen_origin_y_) % sq + sq) % sq;
+    // Основной путь: берём видимый кусок из статичного фона размером с экран.
+    // Пиксель окна X показывает фон[(origin_x + X) mod screen_w], поэтому блит
+    // начинается со сдвига -origin и тайлится, если окно выходит за экран.
+    if (sq == CHECKER_SQ && bg_tex_ && bg_screen_w_ > 0 && bg_screen_h_ > 0) {
+        int tw = bg_screen_w_, th = bg_screen_h_;
+        int ox = ((screen_origin_x_ % tw) + tw) % tw;
+        int oy = ((screen_origin_y_ % th) + th) % th;
+        for (int bx = -ox; bx < w; bx += tw) {
+            if (bx + tw <= 0) continue;
+            for (int by = -oy; by < h; by += th) {
+                if (by + th <= 0) continue;
+                SDL_Rect dst{bx, by, tw, th};
+                SDL_RenderCopy(renderer_, bg_tex_, nullptr, &dst);
+            }
+        }
+        return;
+    }
+    // Запасной путь (нет размера экрана): рисуем клетки напрямую.
+    int dx = 0;
+    int dy = 0;
     int i0 = static_cast<int>(std::floor(-static_cast<double>(dx) / sq));
     int j0 = static_cast<int>(std::floor(-static_cast<double>(dy) / sq));
     for (int j = j0; j * sq + dy < h; ++j) {
