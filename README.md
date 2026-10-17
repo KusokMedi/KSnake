@@ -13,6 +13,9 @@ Read this in [Русский](README_RU.md).
   (the minimum is applied on the first frame and works on every backend, Wayland included)
 - Smooth snake movement: the rendering interpolates between grid steps, so the snake glides
   instead of jumping a whole cell every tick (the game rules stay grid-based)
+- Rendering is VSync-synced to the monitor refresh rate (60, 120, 144, 165, 240 Hz and
+  higher) with no artificial frame cap, so motion stays smooth on any display. The snake
+  speed and collisions run on a fixed timer independent of the frame rate
 - The snake body fades along its length from the bright head to the darker tail
 - Keyboard and mouse controls (menu selection, clickable on-screen buttons)
 - Pause with `Esc`, resume with `Space`, exit to menu with `Esc` again

@@ -38,7 +38,9 @@ grep '^END ' /tmp/snake.log
 Expected output includes `END score=0 screen=0`. `timeout` stops the window-less main
 loop, so the command returns `124`; SDL's default signal handling makes the game exit
 cleanly and write the `END` line. The log also contains `WIN minimum=400x360`,
-`VERSION ... from cwd`, `RENDERER driver=software` and `FONT path=...` lines.
+`VERSION ... from cwd`, `RENDERER driver=software vsync=0`, `TIMING vsync=0 refresh=60`
+and `FONT path=...` lines. `TIMING` reports whether real VSync is active and the
+monitor refresh rate used as the fallback frame limiter when VSync is unavailable.
 
 This test only proves that startup and teardown neither hang nor crash. It does **not**
 validate layout or visuals — use the visual matrix for that.

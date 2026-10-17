@@ -194,10 +194,31 @@ int run(int argc, char* argv[]) {
         return -1;
     }
 
+    bool vsync_active = false;
     SDL_RendererInfo rinfo;
     if (SDL_GetRendererInfo(renderer, &rinfo) == 0) {
-        log_event("RENDERER driver=%s", rinfo.name);
+        // SDL выставляет бит PRESENTVSYNC даже когда запрошенный ускоренный
+        // рендерер откатился на software (напр. dummy-драйвер): такой «vsync»
+        // ничего не синхронизирует. Реальная синхронизация бывает только у
+        // ускоренного рендерера, поэтому требуем оба бита.
+        vsync_active = (rinfo.flags & SDL_RENDERER_PRESENTVSYNC) != 0 &&
+                       (rinfo.flags & SDL_RENDERER_ACCELERATED) != 0;
+        log_event("RENDERER driver=%s vsync=%d", rinfo.name, vsync_active ? 1 : 0);
     }
+
+    // Частота текущего монитора. С VSync темп кадров задаёт сам SDL_RenderPresent
+    // (блокировка на vblank), а без VSync по этой частоте ограничиваем цикл, чтобы
+    // он не крутился на 100% CPU. Если частота недоступна, берём FPS как запасную.
+    auto display_refresh_hz = [&]() -> int {
+        int disp = SDL_GetWindowDisplayIndex(window);
+        SDL_DisplayMode mode{};
+        if (disp >= 0 && SDL_GetCurrentDisplayMode(disp, &mode) == 0 && mode.refresh_rate > 0) {
+            return mode.refresh_rate;
+        }
+        return FPS;
+    };
+    int target_hz = display_refresh_hz();
+    log_event("TIMING vsync=%d refresh=%d", vsync_active ? 1 : 0, target_hz);
 
     apply_window_icon(window, log_line);
 
@@ -237,12 +258,21 @@ int run(int argc, char* argv[]) {
     bool running = true;
     bool min_size_set = false;
     bool fullscreen = false;
-    Uint32 last_tick = SDL_GetTicks();
+    // Высокоточный монотонный таймер: миллисекунды с дробной частью. SDL_GetTicks
+    // даёт только целые мс, из-за чего на 240 Гц (кадр ~4 мс) интерполяция движения
+    // квантуется и поддёргивается. Аккумулятор шагов и move_t считаются как double.
+    const double perf_freq = static_cast<double>(SDL_GetPerformanceFrequency());
+    auto now_ms = [&]() {
+        return perf_freq > 0.0
+                   ? static_cast<double>(SDL_GetPerformanceCounter()) * 1000.0 / perf_freq
+                   : static_cast<double>(SDL_GetTicks());
+    };
+    double last_frame_ms = now_ms();
     bool paused = false;
     bool game_over_active = false;
     bool game_won_active = false;
-    Uint32 igt_ms = 0;      // in-game time, excludes paused/game-over time
-    Uint32 move_acc = 0;
+    double igt_ms = 0.0;  // in-game time, excludes paused/game-over time
+    double move_acc = 0.0;
 
     auto apply_window_layout = [&]() {
         int w = WIN_W, h = WIN_H;
@@ -263,6 +293,9 @@ int run(int argc, char* argv[]) {
     auto toggle_fullscreen = [&]() {
         if (SDL_SetWindowFullscreen(window, fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP) == 0) {
             fullscreen = !fullscreen;
+            // В фуллскрине/SDL_WINDOW_FULLSCREEN_DESKTOP монитор и его частота могут
+            // смениться; для пути без VSync держим целевой FPS актуальным.
+            target_hz = display_refresh_hz();
         }
     };
 
@@ -401,14 +434,16 @@ int run(int argc, char* argv[]) {
     };
 
     while (running) {
-        Uint32 now = SDL_GetTicks();
-        Uint32 frame_delta = now - last_tick;
-        last_tick = now;
+        const double frame_begin = now_ms();
+        double frame_delta = frame_begin - last_frame_ms;
+        last_frame_ms = frame_begin;
+        if (frame_delta < 0.0) frame_delta = 0.0;
 
         // Prevent "spiral of death" (extreme speedups) after freezes
-        if (frame_delta > 250) {
-            frame_delta = 250;
+        if (frame_delta > 250.0) {
+            frame_delta = 250.0;
         }
+        const Uint32 now = SDL_GetTicks();
 
         if (!min_size_set) {
             // Минимум ставим на первом кадре, а не при создании окна: на Wayland
@@ -435,6 +470,17 @@ int run(int argc, char* argv[]) {
                     // окно переехало (в т.ч. композитор подвинул его при ресайзе
                     // от левого верхнего угла) — пересчитываем экранную привязку
                     ui.set_screen_origin(event.window.data1, event.window.data2);
+#if SDL_VERSION_ATLEAST(2, 0, 18)
+                } else if (event.window.event == SDL_WINDOWEVENT_DISPLAY_CHANGED) {
+                    // Переезд на монитор с другой частотой: VSync SDL учитывает сам
+                    // (preset идёт по vblank нового дисплея), а для пути без VSync
+                    // обновляем целевой FPS. Логируем только реальное изменение.
+                    int hz = display_refresh_hz();
+                    if (hz != target_hz) {
+                        target_hz = hz;
+                        log_event("TIMING refresh=%d", target_hz);
+                    }
+#endif
                 } else if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST ||
                            event.window.event == SDL_WINDOWEVENT_MINIMIZED) {
                     if (screen_state.screen == Screen::Game && !game_over_active &&
@@ -614,7 +660,7 @@ int run(int argc, char* argv[]) {
         }
 
         updates.poll();
-        updates.animate_glow(frame_delta);
+        updates.animate_glow(static_cast<uint32_t>(frame_delta + 0.5));
         if (screen_state.screen != Screen::Update && updates.state() != UpdateState::Checking &&
             updates.background_due(SDL_GetTicks64())) {
             updates.start(true);
@@ -637,7 +683,7 @@ int run(int argc, char* argv[]) {
             }
             uint32_t interval = game.move_interval();
             if (interval > 0) {
-                move_t = static_cast<float>(move_acc) / static_cast<float>(interval);
+                move_t = static_cast<float>(move_acc / static_cast<double>(interval));
                 if (move_t < 0.0f) move_t = 0.0f;
                 if (move_t > 1.0f) move_t = 1.0f;
             }
@@ -660,7 +706,7 @@ int run(int argc, char* argv[]) {
         frame.updates = &updates;
         frame.app_version = &app_version;
         frame.score = game.score();
-        frame.igt_ms = igt_ms;
+        frame.igt_ms = static_cast<Uint32>(igt_ms);
         frame.move_t = move_t;
         frame.best_score = best_score;
         frame.now = now;
@@ -671,8 +717,18 @@ int run(int argc, char* argv[]) {
 
         SDL_RenderPresent(renderer);
 
-        if (frame_delta < 1000 / FPS) {
-            SDL_Delay((1000 / FPS) - frame_delta);
+        // С VSync SDL_RenderPresent сам блокируется на vblank, задавая темп по
+        // частоте монитора (любой: 60/120/144/165/240+). Дополнительный SDL_Delay
+        // поверх этого — двойная синхронизация: на 60 Гц он добавлял рывки и
+        // задержку ввода, а на высокой частоте жёстко упирал цикл в 60 FPS.
+        // Поэтому лимитируем кадры только когда VSync недоступен (software/dummy
+        // renderer), и то по частоте текущего монитора.
+        if (!vsync_active) {
+            const double target_frame_ms = 1000.0 / static_cast<double>(target_hz);
+            const double spent_ms = now_ms() - frame_begin;
+            if (spent_ms < target_frame_ms) {
+                SDL_Delay(static_cast<Uint32>(target_frame_ms - spent_ms + 0.5));
+            }
         }
     }
 
