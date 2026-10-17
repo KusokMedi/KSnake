@@ -124,9 +124,10 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
                                 : static_cast<float>(snake[i].y);
     }
 
-    // Цвет вдоль тела: t=0 у головы, t=1 у хвоста. Клетки заливаются квадами,
-    // цвета углов берутся от их положения вдоль тела, поэтому у соседних клеток
-    // цвет на общей границе совпадает и переход получается плавным.
+    // Цвет вдоль тела: t=0 у головы, t=1 у хвоста. Параметр цвета угла клетки —
+    // его положение вдоль осевой линии тела (ломаная по центрам клеток). Углы на
+    // общей границе соседних клеток — одна и та же точка, поэтому и цвет на них
+    // совпадает: переход непрерывный, без швов и скачков на поворотах.
     const Rgb kHead{46, 204, 113};
     const Rgb kTail{18, 96, 84};
     auto sample = [&](float t) {
@@ -137,42 +138,57 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
         };
         return Rgb{mix(kHead.r, kTail.r), mix(kHead.g, kTail.g), mix(kHead.b, kTail.b)};
     };
-    const float denom = n > 1 ? static_cast<float>(n - 1) : 1.0f;
+    // Центры клеток и накопленная длина пути вдоль тела (в клетках).
+    std::vector<float> ccx(n);
+    std::vector<float> ccy(n);
+    std::vector<float> slen(n, 0.0f);
+    for (size_t i = 0; i < n; ++i) {
+        ccx[i] = px[i] + 0.5f;
+        ccy[i] = py[i] + 0.5f;
+        if (i > 0) {
+            const float ex = ccx[i] - ccx[i - 1];
+            const float ey = ccy[i] - ccy[i - 1];
+            slen[i] = slen[i - 1] + std::sqrt(ex * ex + ey * ey);
+        }
+    }
+    const float total = slen[n - 1];
+    // Параметр цвета точки: проекция на осевую линию -> длина пути / общая длина.
+    auto point_t = [&](float qx, float qy) {
+        if (n < 2 || total <= 0.0001f) return 0.0f;
+        float best = 0.0f;
+        float best_d2 = 1.0e9f;
+        for (size_t j = 0; j + 1 < n; ++j) {
+            const float ax = ccx[j];
+            const float ay = ccy[j];
+            const float ex = ccx[j + 1] - ax;
+            const float ey = ccy[j + 1] - ay;
+            const float len2 = ex * ex + ey * ey;
+            float u = len2 > 0.0f ? ((qx - ax) * ex + (qy - ay) * ey) / len2 : 0.0f;
+            if (u < 0.0f) u = 0.0f;
+            if (u > 1.0f) u = 1.0f;
+            const float dx = qx - (ax + u * ex);
+            const float dy = qy - (ay + u * ey);
+            const float d2 = dx * dx + dy * dy;
+            if (d2 < best_d2) {
+                best_d2 = d2;
+                best = slen[j] + u * (slen[j + 1] - slen[j]);
+            }
+        }
+        return best / total;
+    };
     const int eye_sz = std::max(2, cell / 7);
     for (size_t i = 0; i < n; ++i) {
-        // Направление вдоль тела в этой клетке — по соседям.
-        float dx = 0.0f;
-        float dy = 0.0f;
-        if (n > 1) {
-            size_t a = i > 0 ? i - 1 : i;
-            size_t b = i + 1 < n ? i + 1 : i;
-            dx = px[b] - px[a];
-            dy = py[b] - py[a];
-        }
-        float len = std::sqrt(dx * dx + dy * dy);
-        if (len < 0.0001f) {
-            dx = static_cast<float>(game.dir_x());
-            dy = static_cast<float>(game.dir_y());
-            len = std::sqrt(dx * dx + dy * dy);
-        }
-        if (len < 0.0001f) {
-            dx = 1.0f;
-            dy = 0.0f;
-            len = 1.0f;
-        }
-        dx /= len;
-        dy /= len;
-        // Смещение угла вдоль тела (в клетках) -> параметр градиента.
-        auto cor = [&](float ox, float oy) {
-            return sample((static_cast<float>(i) + ox * dx + oy * dy) / denom);
-        };
-        int x0 = offset_x + static_cast<int>(std::lround(px[i] * cell));
-        int y0 = offset_y + static_cast<int>(std::lround(py[i] * cell));
+        const int x0 = offset_x + static_cast<int>(std::lround(px[i] * cell));
+        const int y0 = offset_y + static_cast<int>(std::lround(py[i] * cell));
+        const float bx = px[i];
+        const float by = py[i];
         QuadVertex quad[4] = {
-            {static_cast<float>(x0), static_cast<float>(y0), cor(-0.5f, -0.5f)},
-            {static_cast<float>(x0 + cell), static_cast<float>(y0), cor(0.5f, -0.5f)},
-            {static_cast<float>(x0 + cell), static_cast<float>(y0 + cell), cor(0.5f, 0.5f)},
-            {static_cast<float>(x0), static_cast<float>(y0 + cell), cor(-0.5f, 0.5f)},
+            {static_cast<float>(x0), static_cast<float>(y0), sample(point_t(bx, by))},
+            {static_cast<float>(x0 + cell), static_cast<float>(y0), sample(point_t(bx + 1.0f, by))},
+            {static_cast<float>(x0 + cell), static_cast<float>(y0 + cell),
+             sample(point_t(bx + 1.0f, by + 1.0f))},
+            {static_cast<float>(x0), static_cast<float>(y0 + cell),
+             sample(point_t(bx, by + 1.0f))},
         };
         ui.fill_quad(quad);
     }
