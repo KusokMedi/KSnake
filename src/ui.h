@@ -86,6 +86,10 @@ public:
     void draw_cell(int x, int y, uint8_t r, uint8_t g, uint8_t b);
     // Квад с цветом по углам (порядок: TL, TR, BR, BL) — плавный градиент клетки.
     void fill_quad(const QuadVertex corners[4]);
+    // Залитый сектор круга (для скругления углов на поворотах). Углы в градусах:
+    // 0 — вправо (+X), отсчёт по часовой (экранная ось Y направлена вниз).
+    void fill_sector(int cx, int cy, int radius, int start_deg, int end_deg,
+                     uint8_t r, uint8_t g, uint8_t b);
 
 private:
     struct CachedText {
