@@ -73,8 +73,6 @@ public:
     void draw_cell(int x, int y, uint8_t r, uint8_t g, uint8_t b);
     // Клетка в дробных координатах сетки: для плавной интерполяции движения.
     void draw_cell_f(float x, float y, uint8_t r, uint8_t g, uint8_t b);
-    // Залитый круг в пикселях: скругление угла на повороте змейки.
-    void fill_circle(int cx, int cy, int radius, uint8_t r, uint8_t g, uint8_t b);
 
 private:
     struct CachedText {

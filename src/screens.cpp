@@ -120,17 +120,6 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
         return i < prev.size() ? prev[i].y + (snake[i].y - prev[i].y) * move_t
                                : static_cast<float>(snake[i].y);
     };
-    // Скругление угла на повороте. При повороте квадраты соседних сегментов
-    // расходятся по обеим осям, и между ними оставался бы клин фона. Круг
-    // радиуса полклетки в середине пары закрывает этот клин и скругляет угол.
-    // На прямой круг вписан в стык клеток и ничего не меняет.
-    const int radius = std::max(1, cell / 2);
-    for (size_t i = 0; i + 1 < snake.size(); ++i) {
-        float mx = (seg_x(i) + seg_x(i + 1)) * 0.5f;
-        float my = (seg_y(i) + seg_y(i + 1)) * 0.5f;
-        ui.fill_circle(offset_x + static_cast<int>(std::lround(mx * cell)),
-                       offset_y + static_cast<int>(std::lround(my * cell)), radius, 39, 174, 96);
-    }
     for (size_t i = 0; i < snake.size(); ++i) {
         float sx = seg_x(i);
         float sy = seg_y(i);
