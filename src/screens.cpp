@@ -119,23 +119,27 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
     auto mix = [](uint8_t a, uint8_t b, float t) {
         return static_cast<uint8_t>(std::lround(a + (b - a) * t));
     };
+    float head_x = 0.0f;
+    float head_y = 0.0f;
     for (size_t i = 0; i < n; ++i) {
         float sx = i < prev.size() ? prev[i].x + (snake[i].x - prev[i].x) * move_t
                                    : static_cast<float>(snake[i].x);
         float sy = i < prev.size() ? prev[i].y + (snake[i].y - prev[i].y) * move_t
                                    : static_cast<float>(snake[i].y);
+        if (i == 0) {
+            head_x = sx;
+            head_y = sy;
+        }
         float t = n > 1 ? static_cast<float>(i) / static_cast<float>(n - 1) : 0.0f;
         ui.draw_cell_f(sx, sy, mix(head_rgb[0], tail_rgb[0], t), mix(head_rgb[1], tail_rgb[1], t),
                        mix(head_rgb[2], tail_rgb[2], t));
     }
 
-    // Глаза головы: позиция берётся из интерполированного центра головы.
+    // Глаза головы: позиция берётся из интерполированной позиции головы.
     if (!snake.empty()) {
-        float hx_f = snake[0].x + (prev.empty() ? 0.0f : (prev[0].x - snake[0].x) * move_t);
-        float hy_f = snake[0].y + (prev.empty() ? 0.0f : (prev[0].y - snake[0].y) * move_t);
         int eye_sz = std::max(2, cell / 7);
-        int hx = offset_x + static_cast<int>(std::lround(hx_f * cell));
-        int hy = offset_y + static_cast<int>(std::lround(hy_f * cell));
+        int hx = offset_x + static_cast<int>(std::lround(head_x * cell));
+        int hy = offset_y + static_cast<int>(std::lround(head_y * cell));
         if (game.dir_x() == 1) {
             ui.fill_rect(hx + cell - eye_sz * 2, hy + eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
             ui.fill_rect(hx + cell - eye_sz * 2, hy + cell - eye_sz * 3, eye_sz, eye_sz, 20, 20, 20);
