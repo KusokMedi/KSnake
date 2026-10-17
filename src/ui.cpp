@@ -48,13 +48,16 @@ TTF_Font* Ui::font_at(int base) {
 void Ui::refresh_fonts() {
     font_title_ = font_at(64);
     font_button_ = font_at(26);
+    // Меню рисуем чуть меньшим кеглем, чем прочие кнопки: заголовок и шесть
+    // пунктов крупнее смотрятся тяжело.
+    font_menu_ = font_at(23);
     font_small_ = font_at(16);
     font_gameover_ = font_at(48);
 }
 
 bool Ui::load_fonts() {
     refresh_fonts();
-    return font_title_ && font_button_ && font_small_ && font_gameover_;
+    return font_title_ && font_button_ && font_menu_ && font_small_ && font_gameover_;
 }
 
 void Ui::destroy() {
@@ -70,6 +73,7 @@ void Ui::destroy() {
     font_cache_.clear();
     font_title_ = nullptr;
     font_button_ = nullptr;
+    font_menu_ = nullptr;
     font_small_ = nullptr;
     font_gameover_ = nullptr;
 }

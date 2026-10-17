@@ -238,28 +238,50 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
     }
 }
 
-void draw_paused(Ui& ui, ScreenState& st) {
+void draw_paused(Ui& ui, ScreenState& st, const ScreenFrame& f) {
     const int cx = ui.lay_w() / 2;
     const int cy = ui.lay_h() / 2;
     ui.draw_dim(170);
-    int pad = ui.px(20);
 
+    const int pad = ui.px(22);
     st.overlay_buttons[0] = {"Continue", HintAction::Continue, {}, false};
     st.overlay_buttons[1] = {"Menu", HintAction::Menu, {}, true};
-    int label_w = 0, label_h = 0;
-    text_size(ui.title(), "Paused", label_w, label_h);
+
+    int tw = 0, th = 0;
+    text_size(ui.gameover(), "Paused", tw, th);
+    int sw = 0, sh = 0;
+    text_size(ui.small(), "Score: 0", sw, sh);
+    static const char* kResumeHint = "Space to resume   |   Esc to menu";
+    int hw = 0, hh = 0;
+    text_size(ui.small(), kResumeHint, hw, hh);
 
     int btn_h = ui.px(46);
-    int gap = ui.px(20);
-    int pw = std::max(1, std::min(ui.px(420), ui.lay_w() - ui.px(16)));
-    int ph = std::max(1, std::min(2 * pad + label_h + gap + btn_h, ui.lay_h() - ui.px(16)));
+    int gap = ui.px(18);
+    int line_step = sh + ui.px(6);
+    int stats_h = 2 * line_step;
+    int content_h = th + gap + stats_h + gap + btn_h + gap + hh;
+    int pw = std::max(1, std::min(ui.px(440), ui.lay_w() - ui.px(16)));
+    int ph = std::max(1, std::min(2 * pad + content_h, ui.lay_h() - ui.px(16)));
     ui.fill_rect(cx - pw / 2, cy - ph / 2, pw, ph, 26, 26, 26);
     ui.stroke_rect(cx - pw / 2, cy - ph / 2, pw, ph, 70, 70, 70);
 
     int panel_top = cy - ph / 2;
-    ui.render_text(ui.title(), "Paused", cx, panel_top + pad + label_h / 2, 255, 255, 255);
-    overlay_buttons_layout(ui, st, cx, panel_top + pad + label_h + gap, 2, btn_h);
+    int title_cy = panel_top + pad + th / 2;
+    int group_top = title_cy + th / 2 + gap;
+    int score_cy = group_top + sh / 2;
+    int best_cy = score_cy + line_step;
+    int buttons_top = group_top + stats_h + gap;
+    int hint_cy = buttons_top + btn_h + gap + hh / 2;
+
+    overlay_buttons_layout(ui, st, cx, buttons_top, 2, btn_h);
+
+    ui.render_text(ui.gameover(), "Paused", cx, title_cy, 255, 255, 255);
+    ui.render_text(ui.small(), ("Score: " + std::to_string(f.score)).c_str(), cx, score_cy, 255,
+                   255, 255);
+    ui.render_text(ui.small(), ("Best: " + std::to_string(f.best_score)).c_str(), cx, best_cy,
+                   155, 155, 155);
     render_overlay_buttons(ui, st);
+    ui.render_text(ui.small(), kResumeHint, cx, hint_cy, 120, 120, 120);
 }
 
 void draw_game_over(Ui& ui, ScreenState& st, const ScreenFrame& f) {
@@ -597,7 +619,7 @@ void draw_menu(Ui& ui, ScreenState& st, const ScreenFrame& f) {
             uint8_t tx_b = active ? 175 : 113;
             ui.fill_rect(x0, y0, bw, bh, bg_r, bg_g, bg_b);
             if (active) ui.stroke_rect(x0, y0, bw, bh, tx_r, tx_g, tx_b);
-            ui.render_text(ui.button(), label, win_w / 2, center_y, tx_r, tx_g, tx_b);
+            ui.render_text(ui.menu(), label, win_w / 2, center_y, tx_r, tx_g, tx_b);
         } else if (index == MENU_EXIT) {
             uint8_t bg_r = active ? 130 : 46;
             uint8_t bg_g = active ? 40 : 22;
@@ -607,7 +629,7 @@ void draw_menu(Ui& ui, ScreenState& st, const ScreenFrame& f) {
             uint8_t tx_b = active ? 120 : 60;
             ui.fill_rect(x0, y0, bw, bh, bg_r, bg_g, bg_b);
             if (active) ui.stroke_rect(x0, y0, bw, bh, tx_r, tx_g, tx_b);
-            ui.render_text(ui.button(), label, win_w / 2, center_y, tx_r, tx_g, tx_b);
+            ui.render_text(ui.menu(), label, win_w / 2, center_y, tx_r, tx_g, tx_b);
         } else {
             // обычные пункты: подсветка при наведении, как у Play и Exit,
             // а у Check for updates сверху подмешивается жёлтый, если есть обновление
@@ -626,13 +648,13 @@ void draw_menu(Ui& ui, ScreenState& st, const ScreenFrame& f) {
                                mixc(mixh(190, 205), 228), mixc(mixh(190, 210), 96));
             }
             if (is_coming) {
-                ui.render_text(ui.button(), "Coming soon..", win_w / 2, center_y, 200, 205, 200,
+                ui.render_text(ui.menu(), "Coming soon..", win_w / 2, center_y, 200, 205, 200,
                                static_cast<uint8_t>(255.0f * (1.0f - progress)));
-                ui.render_text(ui.button(), label, win_w / 2, center_y, active ? 190 : 130,
+                ui.render_text(ui.menu(), label, win_w / 2, center_y, active ? 190 : 130,
                                active ? 190 : 130, active ? 190 : 130,
                                static_cast<uint8_t>(255.0f * progress));
             } else {
-                ui.render_text(ui.button(), label, win_w / 2, center_y, mixc(mixh(130, 205), 255),
+                ui.render_text(ui.menu(), label, win_w / 2, center_y, mixc(mixh(130, 205), 255),
                                mixc(mixh(130, 205), 216), mixc(mixh(130, 210), 64));
             }
         }
@@ -670,7 +692,7 @@ int menu_button_width(const Ui& ui, int win_w) {
     int bw = ui.px(230);
     for (int i = 0; i < MENU_COUNT; ++i) {
         int tw = 0, th = 0;
-        text_size(ui.button(), MENU_ITEMS[i].label, tw, th);
+        text_size(ui.menu(), MENU_ITEMS[i].label, tw, th);
         bw = std::max(bw, tw + 2 * pad_x);
     }
     return std::max(1, std::min(bw, win_w - ui.px(24)));
@@ -748,7 +770,7 @@ void render_screen(Ui& ui, ScreenState& st, const ScreenFrame& f) {
         case Screen::Game:
             draw_field(ui, *f.game, f.move_t);
             if (f.paused) {
-                draw_paused(ui, st);
+                draw_paused(ui, st, f);
             } else if (f.game_over || f.won) {
                 draw_game_over(ui, st, f);
             }

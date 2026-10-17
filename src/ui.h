@@ -72,6 +72,7 @@ public:
 
     TTF_Font* title() const { return font_title_; }
     TTF_Font* button() const { return font_button_; }
+    TTF_Font* menu() const { return font_menu_; }
     TTF_Font* small() const { return font_small_; }
     TTF_Font* gameover() const { return font_gameover_; }
 
@@ -107,6 +108,7 @@ private:
     std::map<std::string, CachedText> text_cache_;
     TTF_Font* font_title_ = nullptr;
     TTF_Font* font_button_ = nullptr;
+    TTF_Font* font_menu_ = nullptr;
     TTF_Font* font_small_ = nullptr;
     TTF_Font* font_gameover_ = nullptr;
     int cell_ = CELL;
