@@ -12,6 +12,19 @@
 
 namespace ks {
 
+struct Rgb {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+};
+
+// Вершина цветного квада: углы заливаются с интерполяцией цвета между ними.
+struct QuadVertex {
+    float x;
+    float y;
+    Rgb color;
+};
+
 void text_size(TTF_Font* font, const char* text, int& w, int& h);
 
 // Цвет текста, смешанный с подложкой панели по её альфе.
@@ -71,8 +84,8 @@ public:
     void draw_dim(uint8_t alpha);
     void draw_checker(int w, int h, int sq = CHECKER_SQ);
     void draw_cell(int x, int y, uint8_t r, uint8_t g, uint8_t b);
-    // Клетка в дробных координатах сетки: для плавной интерполяции движения.
-    void draw_cell_f(float x, float y, uint8_t r, uint8_t g, uint8_t b);
+    // Квад с цветом по углам (порядок: TL, TR, BR, BL) — плавный градиент клетки.
+    void fill_quad(const QuadVertex corners[4]);
 
 private:
     struct CachedText {

@@ -231,9 +231,17 @@ void Ui::draw_cell(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
     fill_rect(offset_x_ + x * cell_, offset_y_ + y * cell_, cell_, cell_, r, g, b);
 }
 
-void Ui::draw_cell_f(float x, float y, uint8_t r, uint8_t g, uint8_t b) {
-    fill_rect(offset_x_ + static_cast<int>(std::lround(x * cell_)),
-              offset_y_ + static_cast<int>(std::lround(y * cell_)), cell_, cell_, r, g, b);
+void Ui::fill_quad(const QuadVertex corners[4]) {
+    SDL_Vertex v[4];
+    for (int i = 0; i < 4; ++i) {
+        v[i].position.x = corners[i].x;
+        v[i].position.y = corners[i].y;
+        v[i].color = SDL_Color{corners[i].color.r, corners[i].color.g, corners[i].color.b, 255};
+        v[i].tex_coord.x = 0.0f;
+        v[i].tex_coord.y = 0.0f;
+    }
+    static const int kIdx[6] = {0, 1, 2, 0, 2, 3};
+    SDL_RenderGeometry(renderer_, nullptr, v, 4, kIdx, 6);
 }
 
 std::string Ui::ellipsize(TTF_Font* font, const std::string& text, int max_w) const {
