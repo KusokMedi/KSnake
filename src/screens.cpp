@@ -251,15 +251,12 @@ void draw_paused(Ui& ui, ScreenState& st, const ScreenFrame& f) {
     text_size(ui.gameover(), "Paused", tw, th);
     int sw = 0, sh = 0;
     text_size(ui.small(), "Score: 0", sw, sh);
-    static const char* kResumeHint = "Space to resume   |   Esc to menu";
-    int hw = 0, hh = 0;
-    text_size(ui.small(), kResumeHint, hw, hh);
 
     int btn_h = ui.px(46);
     int gap = ui.px(18);
     int line_step = sh + ui.px(6);
     int stats_h = 2 * line_step;
-    int content_h = th + gap + stats_h + gap + btn_h + gap + hh;
+    int content_h = th + gap + stats_h + gap + btn_h;
     int pw = std::max(1, std::min(ui.px(440), ui.lay_w() - ui.px(16)));
     int ph = std::max(1, std::min(2 * pad + content_h, ui.lay_h() - ui.px(16)));
     ui.fill_rect(cx - pw / 2, cy - ph / 2, pw, ph, 26, 26, 26);
@@ -271,7 +268,6 @@ void draw_paused(Ui& ui, ScreenState& st, const ScreenFrame& f) {
     int score_cy = group_top + sh / 2;
     int best_cy = score_cy + line_step;
     int buttons_top = group_top + stats_h + gap;
-    int hint_cy = buttons_top + btn_h + gap + hh / 2;
 
     overlay_buttons_layout(ui, st, cx, buttons_top, 2, btn_h);
 
@@ -281,7 +277,6 @@ void draw_paused(Ui& ui, ScreenState& st, const ScreenFrame& f) {
     ui.render_text(ui.small(), ("Best: " + std::to_string(f.best_score)).c_str(), cx, best_cy,
                    155, 155, 155);
     render_overlay_buttons(ui, st);
-    ui.render_text(ui.small(), kResumeHint, cx, hint_cy, 120, 120, 120);
 }
 
 void draw_game_over(Ui& ui, ScreenState& st, const ScreenFrame& f) {
