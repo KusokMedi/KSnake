@@ -23,7 +23,7 @@ PREF="$HOME/.local/share/KSnake/KSnake"
 SHOT_N=240
 
 SIZES=${*:-"400x360 640x480 960x540 1280x720 1920x1080 3840x2160"}
-SCREENS="menu game pause gameover credits update update_ok update_ahead update_check update_fail"
+SCREENS="menu game pause gameover won credits update update_ok update_ahead update_check update_fail"
 
 rm -rf "$OUT"; mkdir -p "$OUT"
 rm -f "$PREF/update_check.txt"

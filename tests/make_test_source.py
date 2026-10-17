@@ -45,6 +45,7 @@ SCREENS = {
     "game": "screen_state.screen = Screen::Game;",
     "pause": "screen_state.screen = Screen::Game; paused = true;",
     "gameover": "screen_state.screen = Screen::Game; game_over_active = true;",
+    "won": "screen_state.screen = Screen::Game; game_won_active = true;",
     "update": ("screen_state.screen = Screen::Update;"
                " updates.state_ = UpdateState::Available; updates.version_ = \"1.2.0\";"
                " updates.url_ = \"https://github.com/KusokMedi/KSnake/releases/tag/v1.2.0\";"),
@@ -122,6 +123,8 @@ STATE_HOOK = """        {
                     """ + SCREENS["pause"] + """
                 } else if (std::string(forced) == "gameover") {
                     """ + SCREENS["gameover"] + """
+                } else if (std::string(forced) == "won") {
+                    """ + SCREENS["won"] + """
                 } else if (std::string(forced) == "credits") {
                     screen_state.screen = Screen::Credits;
                 } else if (std::string(forced) == "update") {

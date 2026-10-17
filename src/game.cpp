@@ -8,9 +8,13 @@ namespace ks {
 namespace {
 
 std::deque<Point> initial_snake() {
-    return {{WIDTH / 2, HEIGHT / 2},
-            {WIDTH / 2 - 1, HEIGHT / 2},
-            {WIDTH / 2 - 2, HEIGHT / 2}};
+    // Стартовая длина — 5 клеток: с ней змейка сразу читается как змейка, а не
+    // как короткий огрызок (и это заметно на поле 20x15).
+    return {{WIDTH / 2, HEIGHT / 2},     // 10,7
+            {WIDTH / 2 - 1, HEIGHT / 2},  // 9,7
+            {WIDTH / 2 - 2, HEIGHT / 2},  // 8,7
+            {WIDTH / 2 - 3, HEIGHT / 2},  // 7,7
+            {WIDTH / 2 - 4, HEIGHT / 2}};  // 6,7
 }
 
 }  // namespace

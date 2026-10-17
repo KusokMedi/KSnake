@@ -72,7 +72,7 @@ SDL_VIDEODRIVER=dummy tests/build/unit_util
 SDL_VIDEODRIVER=dummy tests/build/unit_update
 ```
 
-Observed results with the current sources: `unit_game` 102/0, `unit_util` 126/0,
+Observed results with the current sources: `unit_game` 103/0, `unit_util` 126/0,
 `unit_update` 72/0.
 
 - `unit_game` exercises movement, queued turns, wall/self collisions, growth, food
@@ -125,12 +125,16 @@ Sections:
 instrumented build and checks each frame with `check_shot.py`.
 
 ```bash
-./tests/run_visual_matrix.sh                          # default sizes
+./tests/run_visual_matrix.sh                          # default sizes (slow)
 ./tests/run_visual_matrix.sh "400x360 960x540"        # custom sizes
 ```
 
-Default sizes: `400x360 640x480 960x540 1280x720 1920x1080 3840x2160`.
-Screens: `menu game pause gameover credits update update_ok update_ahead update_check
+Default sizes: `400x360 640x480 960x540 1280x720 1920x1080 3840x2160`. The full
+default run is slow on the software renderer (six sizes × eleven screens, and
+3840x2160 alone takes minutes), so routine checks should pass the representative
+subset `"400x360 960x540 1920x1080"` and reserve the full matrix for explicit
+requests.
+Screens: `menu game pause gameover won credits update update_ok update_ahead update_check
 update_fail`.
 
 For each combination it requires `edge=0` (no light pixels on the frame boundary) and
@@ -166,7 +170,7 @@ Environment variables:
 | `KS_SHOTS` | comma-separated frame numbers to capture |
 | `KS_SOFT` | `1` renders offscreen at exactly `WIN_W x WIN_H` via `SDL_CreateSoftwareRenderer` |
 
-`KS_SCREEN` values: `menu`, `game`, `pause`, `gameover`, `credits`, `update`,
+`KS_SCREEN` values: `menu`, `game`, `pause`, `gameover`, `won`, `credits`, `update`,
 `update_ok`, `update_ahead`, `update_check`, `update_fail`.
 
 `KS_SOFT=1` must be set for deterministic dimension checks: on a real window the

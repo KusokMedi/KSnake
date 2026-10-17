@@ -387,6 +387,8 @@ void test_food_spawn() {
 // ---------------------------------------------------------------- 4.2.7
 void test_reset() {
     Game g(15);
+    CHECK(g.snake().size() == 5, "new game starts with the default length 5 (got " +
+                                     std::to_string(g.snake().size()) + ")");
     set_body(&g, {{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}});
     g.dx_ = 0;
     g.dy_ = 1;
@@ -398,10 +400,10 @@ void test_reset() {
     CHECK(g.score() == 0, "reset: score back to 0");
     CHECK(g.move_interval() == MOVE_INTERVAL_MS, "reset: move interval back to the constant");
     CHECK(g.dir_x() == 1 && g.dir_y() == 0, "reset: direction back to right");
-    CHECK(g.snake().size() == 3, "reset: length back to 3");
+    CHECK(g.snake().size() == 5, "reset: length back to the default 5");
     CHECK(g.pending_turns_.empty(), "reset: turn queue cleared");
     CHECK(g.snake().front() == Point{10, 7}, "reset: head back to the centre");
-    CHECK(g.snake()[2] == Point{8, 7}, "reset: tail back to the centre-2");
+    CHECK(g.snake()[4] == Point{6, 7}, "reset: tail back to centre-4");
     bool food_inside = false;
     for (const Point& p : g.snake())
         if (p == g.food()) food_inside = true;
@@ -580,8 +582,8 @@ void test_food_respawn_after_eating() {
         CHECK(eaten == 5, "respawn: ate 5 apples in a row with no food placed by hand (got " +
                               std::to_string(eaten) + " in " + std::to_string(ticks) + " ticks)");
         CHECK(g.score() == 5, "respawn: score reached 5 (got " + std::to_string(g.score()) + ")");
-        CHECK(g.snake().size() == 8, "respawn: length grew to 8 (got " +
-                                         std::to_string(g.snake().size()) + ")");
+        CHECK(g.snake().size() == 10, "respawn: length grew to 10 (got " +
+                                          std::to_string(g.snake().size()) + ")");
     }
 }
 
