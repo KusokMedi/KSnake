@@ -109,49 +109,46 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
     ui.draw_cell(game.food().x, game.food().y, 231, 76, 60);
     const std::deque<Point>& snake = game.snake();
     const std::deque<Point>& prev = game.prev_snake();
-    if (snake.empty()) return;
-    // Змейка рисуется одной сплошной лентой: узлы сегментов интерполируются
-    // между прошлым и текущим шагом, а цвет плавно переходит от головы к хвосту.
-    // Круглые узлы и перемычки не оставляют клиньев фона на поворотах.
-    const Rgb kHead{46, 204, 113};
-    const Rgb kTail{18, 96, 84};
+    // Каждый сегмент скользит от своей клетки на прошлом шаге к текущей. Для
+    // «хвостовых» сегментов (появившихся при росте) прошлой позиции нет — они
+    // стоят на месте. move_t=1 даёт ровно текущие клетки. Цвет плавно переходит
+    // вдоль тела от яркой головы к тёмному хвосту.
+    const uint8_t head_rgb[3] = {46, 204, 113};
+    const uint8_t tail_rgb[3] = {18, 96, 84};
     const size_t n = snake.size();
-    std::vector<std::pair<float, float>> pts;
-    std::vector<Rgb> cols;
-    pts.reserve(n);
-    cols.reserve(n);
+    auto mix = [](uint8_t a, uint8_t b, float t) {
+        return static_cast<uint8_t>(std::lround(a + (b - a) * t));
+    };
     for (size_t i = 0; i < n; ++i) {
-        float gx = i < prev.size() ? prev[i].x + (snake[i].x - prev[i].x) * move_t
+        float sx = i < prev.size() ? prev[i].x + (snake[i].x - prev[i].x) * move_t
                                    : static_cast<float>(snake[i].x);
-        float gy = i < prev.size() ? prev[i].y + (snake[i].y - prev[i].y) * move_t
+        float sy = i < prev.size() ? prev[i].y + (snake[i].y - prev[i].y) * move_t
                                    : static_cast<float>(snake[i].y);
-        pts.push_back({static_cast<float>(offset_x) + (gx + 0.5f) * cell,
-                       static_cast<float>(offset_y) + (gy + 0.5f) * cell});
         float t = n > 1 ? static_cast<float>(i) / static_cast<float>(n - 1) : 0.0f;
-        auto lerp = [t](uint8_t a, uint8_t b) {
-            return static_cast<uint8_t>(std::lround(a + (b - a) * t));
-        };
-        cols.push_back({lerp(kHead.r, kTail.r), lerp(kHead.g, kTail.g),
-                        lerp(kHead.b, kTail.b)});
+        ui.draw_cell_f(sx, sy, mix(head_rgb[0], tail_rgb[0], t), mix(head_rgb[1], tail_rgb[1], t),
+                       mix(head_rgb[2], tail_rgb[2], t));
     }
-    ui.fill_ribbon(pts, cols, static_cast<float>(cell));
 
     // Глаза головы: позиция берётся из интерполированного центра головы.
-    int eye_sz = std::max(2, cell / 7);
-    int hx = static_cast<int>(std::lround(pts[0].first - cell * 0.5f));
-    int hy = static_cast<int>(std::lround(pts[0].second - cell * 0.5f));
-    if (game.dir_x() == 1) {
-        ui.fill_rect(hx + cell - eye_sz * 2, hy + eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
-        ui.fill_rect(hx + cell - eye_sz * 2, hy + cell - eye_sz * 3, eye_sz, eye_sz, 20, 20, 20);
-    } else if (game.dir_x() == -1) {
-        ui.fill_rect(hx + eye_sz, hy + eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
-        ui.fill_rect(hx + eye_sz, hy + cell - eye_sz * 3, eye_sz, eye_sz, 20, 20, 20);
-    } else if (game.dir_y() == 1) {
-        ui.fill_rect(hx + eye_sz * 2, hy + cell - eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
-        ui.fill_rect(hx + cell - eye_sz * 3, hy + cell - eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
-    } else if (game.dir_y() == -1) {
-        ui.fill_rect(hx + eye_sz * 2, hy + eye_sz, eye_sz, eye_sz, 20, 20, 20);
-        ui.fill_rect(hx + cell - eye_sz * 3, hy + eye_sz, eye_sz, eye_sz, 20, 20, 20);
+    if (!snake.empty()) {
+        float hx_f = snake[0].x + (prev.empty() ? 0.0f : (prev[0].x - snake[0].x) * move_t);
+        float hy_f = snake[0].y + (prev.empty() ? 0.0f : (prev[0].y - snake[0].y) * move_t);
+        int eye_sz = std::max(2, cell / 7);
+        int hx = offset_x + static_cast<int>(std::lround(hx_f * cell));
+        int hy = offset_y + static_cast<int>(std::lround(hy_f * cell));
+        if (game.dir_x() == 1) {
+            ui.fill_rect(hx + cell - eye_sz * 2, hy + eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
+            ui.fill_rect(hx + cell - eye_sz * 2, hy + cell - eye_sz * 3, eye_sz, eye_sz, 20, 20, 20);
+        } else if (game.dir_x() == -1) {
+            ui.fill_rect(hx + eye_sz, hy + eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
+            ui.fill_rect(hx + eye_sz, hy + cell - eye_sz * 3, eye_sz, eye_sz, 20, 20, 20);
+        } else if (game.dir_y() == 1) {
+            ui.fill_rect(hx + eye_sz * 2, hy + cell - eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
+            ui.fill_rect(hx + cell - eye_sz * 3, hy + cell - eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
+        } else if (game.dir_y() == -1) {
+            ui.fill_rect(hx + eye_sz * 2, hy + eye_sz, eye_sz, eye_sz, 20, 20, 20);
+            ui.fill_rect(hx + cell - eye_sz * 3, hy + eye_sz, eye_sz, eye_sz, 20, 20, 20);
+        }
     }
 }
 

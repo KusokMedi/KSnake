@@ -13,8 +13,7 @@ Read this in [Русский](README_RU.md).
   (the minimum is applied on the first frame and works on every backend, Wayland included)
 - Smooth snake movement: the rendering interpolates between grid steps, so the snake glides
   instead of jumping a whole cell every tick (the game rules stay grid-based)
-- The snake is drawn as one continuous body: rounded joints leave no background gap at
-  turns, and the colour fades along the body from the bright head to the darker tail
+- The snake body fades along its length from the bright head to the darker tail
 - Keyboard and mouse controls (menu selection, clickable on-screen buttons)
 - Pause with `Esc`, resume with `Space`, exit to menu with `Esc` again
 - Game Over screen with stats (New Score, Time, Best); filling the whole board ends the

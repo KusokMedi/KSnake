@@ -231,77 +231,9 @@ void Ui::draw_cell(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
     fill_rect(offset_x_ + x * cell_, offset_y_ + y * cell_, cell_, cell_, r, g, b);
 }
 
-void Ui::fill_ribbon(const std::vector<std::pair<float, float>>& pts,
-                     const std::vector<Rgb>& colors, float thickness) {
-    if (pts.empty() || pts.size() != colors.size()) return;
-    float radius = thickness * 0.5f;
-    if (radius < 0.5f) radius = 0.5f;
-
-    std::vector<SDL_Vertex> verts;
-    std::vector<int> idx;
-    verts.reserve(pts.size() * 20 + 16);
-    idx.reserve(pts.size() * 60 + 24);
-    auto add_vert = [&](float x, float y, const Rgb& c) {
-        SDL_Vertex v;
-        v.position.x = x;
-        v.position.y = y;
-        v.color = SDL_Color{c.r, c.g, c.b, 255};
-        v.tex_coord.x = 0.0f;
-        v.tex_coord.y = 0.0f;
-        verts.push_back(v);
-        return static_cast<int>(verts.size()) - 1;
-    };
-
-    // Круглые узлы: дают скруглённые голову, хвост и повороты, из-за чего на
-    // стыках сегментов не остаётся клина фона.
-    constexpr int kSegments = 16;
-    const float kTau = 6.28318530717958647692f;
-    for (size_t i = 0; i < pts.size(); ++i) {
-        float cx = pts[i].first;
-        float cy = pts[i].second;
-        const Rgb& c = colors[i];
-        int center = add_vert(cx, cy, c);
-        int prev = -1;
-        for (int j = 0; j <= kSegments; ++j) {
-            float a = static_cast<float>(j) / static_cast<float>(kSegments) * kTau;
-            int v = add_vert(cx + std::cos(a) * radius, cy + std::sin(a) * radius, c);
-            if (prev >= 0) {
-                idx.push_back(center);
-                idx.push_back(prev);
-                idx.push_back(v);
-            }
-            prev = v;
-        }
-    }
-
-    // Перемычки между соседними сегментами: прямоугольник вдоль отрезка.
-    // Цвета концов совпадают с узлами, поэтому градиент получается плавным.
-    for (size_t i = 0; i + 1 < pts.size(); ++i) {
-        float x0 = pts[i].first, y0 = pts[i].second;
-        float x1 = pts[i + 1].first, y1 = pts[i + 1].second;
-        float dx = x1 - x0;
-        float dy = y1 - y0;
-        float len = std::sqrt(dx * dx + dy * dy);
-        if (len < 0.0001f) continue;
-        float px = -dy / len * radius;
-        float py = dx / len * radius;
-        const Rgb& c0 = colors[i];
-        const Rgb& c1 = colors[i + 1];
-        int a = add_vert(x0 + px, y0 + py, c0);
-        int b = add_vert(x0 - px, y0 - py, c0);
-        int cc = add_vert(x1 + px, y1 + py, c1);
-        int d = add_vert(x1 - px, y1 - py, c1);
-        idx.push_back(a);
-        idx.push_back(b);
-        idx.push_back(cc);
-        idx.push_back(b);
-        idx.push_back(d);
-        idx.push_back(cc);
-    }
-
-    if (idx.empty()) return;
-    SDL_RenderGeometry(renderer_, nullptr, verts.data(), static_cast<int>(verts.size()),
-                       idx.data(), static_cast<int>(idx.size()));
+void Ui::draw_cell_f(float x, float y, uint8_t r, uint8_t g, uint8_t b) {
+    fill_rect(offset_x_ + static_cast<int>(std::lround(x * cell_)),
+              offset_y_ + static_cast<int>(std::lround(y * cell_)), cell_, cell_, r, g, b);
 }
 
 std::string Ui::ellipsize(TTF_Font* font, const std::string& text, int max_w) const {

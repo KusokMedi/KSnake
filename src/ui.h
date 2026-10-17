@@ -7,18 +7,10 @@
 #include <functional>
 #include <map>
 #include <string>
-#include <utility>
-#include <vector>
 
 #include "config.h"
 
 namespace ks {
-
-struct Rgb {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-};
 
 void text_size(TTF_Font* font, const char* text, int& w, int& h);
 
@@ -79,11 +71,8 @@ public:
     void draw_dim(uint8_t alpha);
     void draw_checker(int w, int h, int sq = CHECKER_SQ);
     void draw_cell(int x, int y, uint8_t r, uint8_t g, uint8_t b);
-    // Сплошная «лента» через точки (пиксельные координаты окна): круглые узлы
-    // каждого сегмента и прямоугольники между соседними. Цвета вершин задают
-    // градиент вдоль тела, а круглые узлы убирают клинья фона на поворотах.
-    void fill_ribbon(const std::vector<std::pair<float, float>>& pts,
-                     const std::vector<Rgb>& colors, float thickness);
+    // Клетка в дробных координатах сетки: для плавной интерполяции движения.
+    void draw_cell_f(float x, float y, uint8_t r, uint8_t g, uint8_t b);
 
 private:
     struct CachedText {
