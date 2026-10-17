@@ -273,6 +273,10 @@ int run(int argc, char* argv[]) {
     bool game_won_active = false;
     double igt_ms = 0.0;  // in-game time, excludes paused/game-over time
     double move_acc = 0.0;
+    // Доля текущего тика для интерполяции отрисовки. Хранится между кадрами,
+    // чтобы пауза замораживала голову в её текущем под-клеточном положении, а не
+    // прищёлкивала её к центру клетки.
+    float move_t = 1.0f;
 
     auto apply_window_layout = [&]() {
         int w = WIN_W, h = WIN_H;
@@ -670,11 +674,13 @@ int run(int argc, char* argv[]) {
         }
 
         // Доля текущего тика для плавной интерполяции отрисовки змейки. Вне
-        // активной игры (пауза, Game Over, меню) — 1.0: рисуем ровно текущие
-        // клетки без сдвига.
-        float move_t = 1.0f;
-        if (screen_state.screen == Screen::Game && !paused && !game_over_active &&
-            !game_won_active) {
+        // активной игры (Game Over, Won, меню) — 1.0: рисуем ровно текущие клетки.
+        // На паузе значение НЕ пересчитывается и сохраняется с прошлого кадра, чтобы
+        // голова замерла в своём под-клеточном положении, а не прищёлкнулась к центру
+        // клетки.
+        if (screen_state.screen != Screen::Game || game_over_active || game_won_active) {
+            move_t = 1.0f;
+        } else if (!paused) {
             igt_ms += frame_delta;
             move_acc += frame_delta;
             while (move_acc >= game.move_interval() && !game_over_active && !game_won_active) {
