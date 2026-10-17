@@ -145,14 +145,15 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
     const float denom = n > 1 ? static_cast<float>(n - 1) : 1.0f;
     const int eye_sz = std::max(2, cell / 7);
     for (size_t i = 0; i < n; ++i) {
-        // Направление вдоль тела в этой клетке — по соседям.
+        // Направление вдоль тела в этой клетке — по клеткам-соседям (стабильно,
+        // не зависит от под-клеточной анимации головы).
         float dx = 0.0f;
         float dy = 0.0f;
         if (n > 1) {
             size_t a = i > 0 ? i - 1 : i;
             size_t b = i + 1 < n ? i + 1 : i;
-            dx = px[b] - px[a];
-            dy = py[b] - py[a];
+            dx = static_cast<float>(snake[b].x - snake[a].x);
+            dy = static_cast<float>(snake[b].y - snake[a].y);
         }
         float len = std::sqrt(dx * dx + dy * dy);
         if (len < 0.0001f) {
@@ -167,9 +168,13 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
         }
         dx /= len;
         dy /= len;
+        // Параметр цвета плавно смещается на долю шага (move_t): к моменту
+        // следующего шага (перенос индексов на 1) смещение доходит до 1 и
+        // «замыкается» без рывка — градиент течёт вдоль тела, а не дёргается.
+        const float base = static_cast<float>(i) + move_t;
         // Смещение угла вдоль тела (в клетках) -> параметр градиента.
         auto cor = [&](float ox, float oy) {
-            return sample((static_cast<float>(i) + ox * dx + oy * dy) / denom);
+            return sample((base + ox * dx + oy * dy) / denom);
         };
         int x0 = offset_x + static_cast<int>(std::lround(px[i] * cell));
         int y0 = offset_y + static_cast<int>(std::lround(py[i] * cell));
