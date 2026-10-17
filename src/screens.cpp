@@ -1,6 +1,7 @@
 #include "screens.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "util.h"
 
@@ -89,7 +90,7 @@ void render_overlay_buttons(Ui& ui, const ScreenState& st) {
     }
 }
 
-void draw_field(Ui& ui, const Game& game) {
+void draw_field(Ui& ui, const Game& game, float move_t) {
     const int cell = ui.cell();
     const int offset_x = ui.offset_x();
     const int offset_y = ui.offset_y();
@@ -107,14 +108,28 @@ void draw_field(Ui& ui, const Game& game) {
 
     ui.draw_cell(game.food().x, game.food().y, 231, 76, 60);
     const std::deque<Point>& snake = game.snake();
+    const std::deque<Point>& prev = game.prev_snake();
+    // Каждый сегмент скользит от своей клетки на прошлом шаге к текущей. Для
+    // «хвостовых» сегментов (появившихся при росте) прошлой позиции нет — они
+    // стоят на месте. move_t=1 даёт ровно текущие клетки.
+    auto seg_x = [&](size_t i) {
+        return i < prev.size() ? prev[i].x + (snake[i].x - prev[i].x) * move_t
+                               : static_cast<float>(snake[i].x);
+    };
+    auto seg_y = [&](size_t i) {
+        return i < prev.size() ? prev[i].y + (snake[i].y - prev[i].y) * move_t
+                               : static_cast<float>(snake[i].y);
+    };
     for (size_t i = 0; i < snake.size(); ++i) {
+        float sx = seg_x(i);
+        float sy = seg_y(i);
         if (i == 0) {
             // Head: brighter green
-            ui.draw_cell(snake[i].x, snake[i].y, 46, 204, 113);
+            ui.draw_cell_f(sx, sy, 46, 204, 113);
             // Draw eyes on head
             int eye_sz = std::max(2, cell / 7);
-            int hx = offset_x + snake[i].x * cell;
-            int hy = offset_y + snake[i].y * cell;
+            int hx = offset_x + static_cast<int>(std::lround(sx * cell));
+            int hy = offset_y + static_cast<int>(std::lround(sy * cell));
             if (game.dir_x() == 1) {
                 ui.fill_rect(hx + cell - eye_sz * 2, hy + eye_sz * 2, eye_sz, eye_sz, 20, 20, 20);
                 ui.fill_rect(hx + cell - eye_sz * 2, hy + cell - eye_sz * 3, eye_sz, eye_sz, 20,
@@ -132,7 +147,7 @@ void draw_field(Ui& ui, const Game& game) {
             }
         } else {
             // Body: slightly darker green
-            ui.draw_cell(snake[i].x, snake[i].y, 39, 174, 96);
+            ui.draw_cell_f(sx, sy, 39, 174, 96);
         }
     }
 }
@@ -645,7 +660,7 @@ void render_screen(Ui& ui, ScreenState& st, const ScreenFrame& f) {
 
     switch (st.screen) {
         case Screen::Game:
-            draw_field(ui, *f.game);
+            draw_field(ui, *f.game, f.move_t);
             if (f.paused) {
                 draw_paused(ui, st);
             } else if (f.game_over || f.won) {

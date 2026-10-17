@@ -588,6 +588,56 @@ void test_food_respawn_after_eating() {
     }
 }
 
+// ---------------------------------------------------------------- 4.2.13
+// Снимок предыдущего состояния нужен отрисовке для интерполяции: между тиками
+// змейка рисуется между prev_snake() и snake(), а правила остаются поклеточными.
+void test_prev_snake_snapshot() {
+    // Обычный ход: снимок — прежнее тело, и prev[i] == cur[i+1] (сдвиг на клетку).
+    {
+        Game g(700);
+        set_body(&g, straight_path(5, 5, 3, -1, 0));
+        g.dx_ = 1;
+        g.dy_ = 0;
+        g.food_ = {0, 14};
+        clear_turns(&g);
+        std::deque<Point> before = g.snake();
+        g.step();
+        CHECK(g.prev_snake() == before, "prev_snake: keeps the pre-step body");
+        bool shifted = true;
+        for (size_t i = 0; i + 1 < g.snake().size(); ++i)
+            if (!(g.prev_snake()[i] == g.snake()[i + 1])) shifted = false;
+        CHECK(shifted, "prev_snake: each segment came from the cell ahead of it");
+    }
+    // Рост: снимок короче текущего тела на одну клетку (новый хвост стоит).
+    {
+        Game g(701);
+        set_body(&g, straight_path(5, 5, 3, -1, 0));
+        g.dx_ = 1;
+        g.dy_ = 0;
+        g.score_ = 0;
+        g.move_interval_ = 150;
+        clear_turns(&g);
+        g.food_ = {6, 5};
+        std::deque<Point> before = g.snake();
+        StepOutcome out = g.step();
+        CHECK(out.kind == StepKind::AteFood, "prev_snake growth: food eaten");
+        CHECK(g.prev_snake() == before, "prev_snake growth: keeps the pre-step body");
+        CHECK(g.snake().size() == g.prev_snake().size() + 1,
+              "prev_snake growth: snapshot is one cell shorter");
+    }
+    // Столкновение не двигает змейку: снимок равен телу, интерполяция не дёргает.
+    {
+        Game g(702);
+        set_body(&g, straight_path(19, 7, 3, -1, 0));
+        g.dx_ = 1;
+        g.dy_ = 0;
+        g.food_ = {5, 5};
+        clear_turns(&g);
+        g.step();
+        CHECK(g.prev_snake() == g.snake(), "prev_snake collision: snapshot equals the body");
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -603,6 +653,7 @@ int main() {
     test_determinism();
     test_win_by_filling_field();
     test_food_respawn_after_eating();
+    test_prev_snake_snapshot();
 
     std::printf("\nunit_game: pass=%d fail=%d\n", g_pass, g_fail);
     for (const std::string& s : g_failed) std::printf("  failed: %s\n", s.c_str());

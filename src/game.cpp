@@ -21,6 +21,7 @@ Game::Game(uint32_t seed) : snake_(initial_snake()), rng_(seed) {
 
 void Game::reset() {
     snake_ = initial_snake();
+    prev_snake_ = snake_;
     dx_ = 1;
     dy_ = 0;
     pending_turns_.clear();
@@ -52,6 +53,7 @@ void Game::place_food() {
 }
 
 StepOutcome Game::step() {
+    prev_snake_ = snake_;
     if (!pending_turns_.empty()) {
         dx_ = pending_turns_.front().first;
         dy_ = pending_turns_.front().second;

@@ -84,6 +84,9 @@ struct ScreenFrame {
     Uint32 igt_ms = 0;
     int best_score = 0;
     Uint32 now = 0;
+    // Доля текущего тика (0..1) для интерполяции движения змейки между
+    // логическими шагами. 1.0 — рисовать текущие клетки без сдвига.
+    float move_t = 1.0f;
     bool paused = false;
     bool game_over = false;
     bool won = false;

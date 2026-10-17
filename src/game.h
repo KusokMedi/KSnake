@@ -35,6 +35,9 @@ public:
     StepOutcome step();
 
     const std::deque<Point>& snake() const { return snake_; }
+    // Клетки змейки до последнего шага: отрисовка интерполирует между prev и
+    // snake, чтобы движение было плавным, а правила оставались поклеточными.
+    const std::deque<Point>& prev_snake() const { return prev_snake_; }
     const Point& food() const { return food_; }
     int dir_x() const { return dx_; }
     int dir_y() const { return dy_; }
@@ -45,6 +48,7 @@ private:
     void place_food();
 
     std::deque<Point> snake_;
+    std::deque<Point> prev_snake_;
     std::deque<std::pair<int, int>> pending_turns_;
     std::mt19937 rng_;
     Point food_{0, 0};

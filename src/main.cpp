@@ -623,6 +623,10 @@ int run(int argc, char* argv[]) {
             log_event("UPDATE background check again");
         }
 
+        // Доля текущего тика для плавной интерполяции отрисовки змейки. Вне
+        // активной игры (пауза, Game Over, меню) — 1.0: рисуем ровно текущие
+        // клетки без сдвига.
+        float move_t = 1.0f;
         if (screen_state.screen == Screen::Game && !paused && !game_over_active &&
             !game_won_active) {
             igt_ms += frame_delta;
@@ -630,6 +634,12 @@ int run(int argc, char* argv[]) {
             while (move_acc >= game.move_interval() && !game_over_active && !game_won_active) {
                 move_acc -= game.move_interval();
                 if (!step_game()) break;
+            }
+            uint32_t interval = game.move_interval();
+            if (interval > 0) {
+                move_t = static_cast<float>(move_acc) / static_cast<float>(interval);
+                if (move_t < 0.0f) move_t = 0.0f;
+                if (move_t > 1.0f) move_t = 1.0f;
             }
         }
 
@@ -651,6 +661,7 @@ int run(int argc, char* argv[]) {
         frame.app_version = &app_version;
         frame.score = game.score();
         frame.igt_ms = igt_ms;
+        frame.move_t = move_t;
         frame.best_score = best_score;
         frame.now = now;
         frame.paused = paused;

@@ -231,6 +231,11 @@ void Ui::draw_cell(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
     fill_rect(offset_x_ + x * cell_, offset_y_ + y * cell_, cell_, cell_, r, g, b);
 }
 
+void Ui::draw_cell_f(float x, float y, uint8_t r, uint8_t g, uint8_t b) {
+    fill_rect(offset_x_ + static_cast<int>(std::lround(x * cell_)),
+              offset_y_ + static_cast<int>(std::lround(y * cell_)), cell_, cell_, r, g, b);
+}
+
 std::string Ui::ellipsize(TTF_Font* font, const std::string& text, int max_w) const {
     if (max_w <= 0 || !font) return text;
     int tw = 0, th = 0;

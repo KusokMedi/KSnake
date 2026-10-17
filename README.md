@@ -11,6 +11,8 @@ Read this in [Русский](README_RU.md).
 - 20×15 grid with a resizable window
 - The window can be resized, but not below 400×360: smaller sizes do not fit the layout
   (the minimum is applied on the first frame and works on every backend, Wayland included)
+- Smooth snake movement: the rendering interpolates between grid steps, so the snake glides
+  instead of jumping a whole cell every tick (the game rules stay grid-based)
 - Keyboard and mouse controls (menu selection, clickable on-screen buttons)
 - Pause with `Esc`, resume with `Space`, exit to menu with `Esc` again
 - Game Over screen with stats (New Score, Time, Best); filling the whole board ends the
