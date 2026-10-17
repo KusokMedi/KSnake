@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace ks {
 
 // Поле и окно: размеры заданы здесь, чтобы их использовали и рендер, и layout.
@@ -9,6 +11,10 @@ constexpr int CELL = 40;
 constexpr int WIN_W = 960;
 constexpr int WIN_H = 540;
 constexpr int FPS = 60;
+
+// Скорость змейки постоянна (не растёт со счётом). 120 мс на клетку — средний
+// темп: заметно не медленно и не быстро; менять здесь.
+constexpr uint32_t MOVE_INTERVAL_MS = 120;
 
 // Мелкий паттерн фона меню и экранов поверх игры.
 constexpr int CHECKER_SQ = 64;

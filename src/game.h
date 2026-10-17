@@ -5,6 +5,8 @@
 #include <random>
 #include <utility>
 
+#include "config.h"
+
 namespace ks {
 
 struct Point {
@@ -55,7 +57,7 @@ private:
     int dx_ = 1;
     int dy_ = 0;
     int score_ = 0;
-    uint32_t move_interval_ = 150;
+    uint32_t move_interval_ = MOVE_INTERVAL_MS;
 };
 
 }  // namespace ks

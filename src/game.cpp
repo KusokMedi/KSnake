@@ -26,7 +26,7 @@ void Game::reset() {
     dy_ = 0;
     pending_turns_.clear();
     score_ = 0;
-    move_interval_ = 150;
+    move_interval_ = MOVE_INTERVAL_MS;
     place_food();
 }
 
@@ -85,7 +85,7 @@ StepOutcome Game::step() {
     snake_.push_front(head);
     if (head == food_) {
         ++score_;
-        move_interval_ = static_cast<uint32_t>(std::max(60, 150 - score_ * 3));
+        // Скорость постоянна: интервал между шагами не зависит от счёта.
         // Новое яблоко сразу после съеденного. Без этого food_ навсегда остаётся
         // на клетке, которую только что заняла голова: яблоко видно, но оно внутри
         // змейки и больше никогда не съедается. На заполненном поле place_food()

@@ -82,7 +82,7 @@ void set_along_path(Game* g, size_t len, Point* food_out) {
     g->dx_ = p[len].x - p[len - 1].x;
     g->dy_ = p[len].y - p[len - 1].y;
     g->score_ = static_cast<int>(len - 3);
-    g->move_interval_ = 150;
+    g->move_interval_ = MOVE_INTERVAL_MS;
     clear_turns(g);
     g->food_ = p[len];
     if (food_out) *food_out = p[len];
@@ -396,7 +396,7 @@ void test_reset() {
     g.queue_turn(0, -1);
     g.reset();
     CHECK(g.score() == 0, "reset: score back to 0");
-    CHECK(g.move_interval() == 150, "reset: move interval back to 150");
+    CHECK(g.move_interval() == MOVE_INTERVAL_MS, "reset: move interval back to the constant");
     CHECK(g.dir_x() == 1 && g.dir_y() == 0, "reset: direction back to right");
     CHECK(g.snake().size() == 3, "reset: length back to 3");
     CHECK(g.pending_turns_.empty(), "reset: turn queue cleared");
@@ -410,30 +410,27 @@ void test_reset() {
 
 // ---------------------------------------------------------------- 4.2.8
 void test_speed_bounds() {
+    // Скорость постоянна: сколько бы еды змейка ни съела, интервал не меняется.
     Game g(16);
-    uint32_t prev = 150;
-    bool monotonic = true;
-    bool positive = true;
+    bool constant = (g.move_interval() == MOVE_INTERVAL_MS);
     int eaten = 0;
     for (int i = 0; i < 400; ++i) {
         set_along_path(&g, static_cast<size_t>(3 + i), nullptr);
         StepOutcome o = g.step();
         if (o.kind == StepKind::Won) {
             ++eaten;
+            if (g.move_interval() != MOVE_INTERVAL_MS) constant = false;
             break;
         }
         if (o.kind != StepKind::AteFood) break;
         ++eaten;
-        uint32_t iv = g.move_interval();
-        if (iv == 0) positive = false;
-        if (iv > prev) monotonic = false;
-        prev = iv;
+        if (o.move_interval != MOVE_INTERVAL_MS || g.move_interval() != MOVE_INTERVAL_MS) {
+            constant = false;
+        }
     }
-    CHECK(positive, "move interval never becomes 0");
-    CHECK(monotonic, "move interval never grows with score");
     CHECK(eaten == 297, "ate all 297 foods along the Hamiltonian path (got " +
                             std::to_string(eaten) + ")");
-    CHECK(prev == 60, "move interval floors at 60 (got " + std::to_string(prev) + ")");
+    CHECK(constant, "move interval stays constant regardless of score");
 }
 
 // ---------------------------------------------------------------- 4.2.9

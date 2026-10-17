@@ -70,11 +70,11 @@ SDL_VIDEODRIVER=dummy tests/build/unit_util
 SDL_VIDEODRIVER=dummy tests/build/unit_update
 ```
 
-Observed results with the current sources: `unit_game` 104/0, `unit_util` 126/0,
+Observed results with the current sources: `unit_game` 102/0, `unit_util` 126/0,
 `unit_update` 72/0.
 
 - `unit_game` exercises movement, queued turns, wall/self collisions, growth, food
-  spawning, speed bounds, determinism, the win-by-filling-the-field path and the
+  spawning, the constant move speed, determinism, the win-by-filling-the-field path and the
   previous-position snapshot used for smooth rendering.
 - `unit_update` substitutes a script named `curl` early on `PATH`, so `http_get` reads
   local files instead of touching the network; it covers cache restore, the 5-minute
