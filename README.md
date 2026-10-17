@@ -14,8 +14,6 @@ Read this in [Русский](README_RU.md).
 - Smooth snake movement: the rendering interpolates between grid steps, so the snake glides
   instead of jumping a whole cell every tick (the game rules stay grid-based)
 - The snake body fades along its length from the bright head to the darker tail
-- Turns are rounded: at each bend the outer corner is smoothed and the inner corner is
-  filled, so the body flows around corners instead of showing a hard square elbow
 - Keyboard and mouse controls (menu selection, clickable on-screen buttons)
 - Pause with `Esc`, resume with `Space`, exit to menu with `Esc` again
 - Game Over screen with stats (New Score, Time, Best); filling the whole board ends the

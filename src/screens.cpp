@@ -177,43 +177,6 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
         ui.fill_quad(quad);
     }
 
-    // Скругление углов на поворотах: у клетки-поворота внутренний (вогнутый) угол
-    // дополняем телом, а внешний (выпуклый) срезаем цветом фона. Прямые участки не
-    // трогаем. Позицию берём интерполированную (px/py), чтобы угол не отставал.
-    const int half = cell / 2;
-    for (size_t j = 1; j + 1 < n; ++j) {
-        const int d1x = snake[j].x - snake[j - 1].x;
-        const int d1y = snake[j].y - snake[j - 1].y;
-        const int d2x = snake[j + 1].x - snake[j].x;
-        const int d2y = snake[j + 1].y - snake[j].y;
-        if (d1x == d2x && d1y == d2y) continue;  // прямой участок
-        const int ux = -d1x + d2x;
-        const int uy = -d1y + d2y;
-        if (ux == 0 || uy == 0) continue;  // не 90-градусный поворот
-        int start_deg = 0;
-        int end_deg = 90;
-        if (ux < 0 && uy < 0) {
-            start_deg = 180;
-            end_deg = 270;
-        } else if (ux < 0) {
-            start_deg = 90;
-            end_deg = 180;
-        } else if (uy < 0) {
-            start_deg = 270;
-            end_deg = 360;
-        }
-        const int x0 = offset_x + static_cast<int>(std::lround(px[j] * cell));
-        const int y0 = offset_y + static_cast<int>(std::lround(py[j] * cell));
-        const int ccx = x0 + half;
-        const int ccy = y0 + half;
-        const Rgb body = sample(static_cast<float>(j) / denom);
-        ui.fill_sector(ccx + ux * half, ccy + uy * half, half, start_deg, end_deg, body.r,
-                       body.g, body.b);
-        const uint8_t bgc = ((snake[j].x + snake[j].y) % 2 + 2) % 2 == 0 ? 0 : 24;
-        ui.fill_sector(ccx - ux * half, ccy - uy * half, half, start_deg, end_deg, bgc, bgc,
-                       bgc);
-    }
-
     // Глаза головы: позиция берётся из интерполированной позиции головы.
     int hx = offset_x + static_cast<int>(std::lround(px[0] * cell));
     int hy = offset_y + static_cast<int>(std::lround(py[0] * cell));

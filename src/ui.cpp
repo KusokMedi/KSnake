@@ -244,38 +244,6 @@ void Ui::fill_quad(const QuadVertex corners[4]) {
     SDL_RenderGeometry(renderer_, nullptr, v, 4, kIdx, 6);
 }
 
-void Ui::fill_sector(int cx, int cy, int radius, int start_deg, int end_deg,
-                     uint8_t r, uint8_t g, uint8_t b) {
-    if (radius <= 0) return;
-    while (end_deg < start_deg) end_deg += 360;
-    const int span = end_deg - start_deg;
-    int steps = span / 6;
-    if (steps < 1) steps = 1;
-    if (steps > 64) steps = 64;
-    SDL_Vertex v[66];
-    const SDL_Color col{r, g, b, 255};
-    v[0].position = SDL_FPoint{static_cast<float>(cx), static_cast<float>(cy)};
-    v[0].color = col;
-    v[0].tex_coord = SDL_FPoint{0.0f, 0.0f};
-    const double kPi = 3.14159265358979323846;
-    for (int i = 0; i <= steps; ++i) {
-        const double a = (start_deg + static_cast<double>(span) * i / steps) * kPi / 180.0;
-        v[i + 1].position = SDL_FPoint{
-            static_cast<float>(cx + radius * std::cos(a)),
-            static_cast<float>(cy + radius * std::sin(a))};
-        v[i + 1].color = col;
-        v[i + 1].tex_coord = SDL_FPoint{0.0f, 0.0f};
-    }
-    int idx[192];
-    int ni = 0;
-    for (int i = 1; i <= steps; ++i) {
-        idx[ni++] = 0;
-        idx[ni++] = i;
-        idx[ni++] = i + 1;
-    }
-    SDL_RenderGeometry(renderer_, nullptr, v, steps + 2, idx, ni);
-}
-
 std::string Ui::ellipsize(TTF_Font* font, const std::string& text, int max_w) const {
     if (max_w <= 0 || !font) return text;
     int tw = 0, th = 0;
