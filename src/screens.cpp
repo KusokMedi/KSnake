@@ -111,17 +111,20 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
     const std::deque<Point>& snake = game.snake();
     const std::deque<Point>& prev = game.prev_snake();
     if (snake.empty()) return;
-    // Каждый сегмент скользит от своей клетки на прошлом шаге к текущей. Для
-    // «хвостовых» сегментов (появившихся при росте) прошлой позиции нет — они
-    // стоят на месте. move_t=1 даёт ровно текущие клетки.
+    // Тело стоит по клеткам: соседние сегменты — одинаковые квадраты, поэтому
+    // перенос тела незаметен. Гладко анимируются только голова (въезжает из
+    // прошлой клетки) и хвост (втягивается в предыдущую). Так клетка поворота всё
+    // время остаётся целым квадратом — без клина фона на изгибе.
     const size_t n = snake.size();
     std::vector<float> px(n);
     std::vector<float> py(n);
     for (size_t i = 0; i < n; ++i) {
-        px[i] = i < prev.size() ? prev[i].x + (snake[i].x - prev[i].x) * move_t
-                                : static_cast<float>(snake[i].x);
-        py[i] = i < prev.size() ? prev[i].y + (snake[i].y - prev[i].y) * move_t
-                                : static_cast<float>(snake[i].y);
+        px[i] = static_cast<float>(snake[i].x);
+        py[i] = static_cast<float>(snake[i].y);
+    }
+    if (!prev.empty()) {
+        px[0] = prev[0].x + (snake[0].x - prev[0].x) * move_t;
+        py[0] = prev[0].y + (snake[0].y - prev[0].y) * move_t;
     }
 
     // Цвет вдоль тела: t=0 у головы, t=1 у хвоста. Параметр цвета угла клетки —
@@ -191,6 +194,38 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
              sample(point_t(bx, by + 1.0f))},
         };
         ui.fill_quad(quad);
+    }
+
+    // Хвост на обычном шаге не уезжает, а втягивается в предыдущую клетку: его
+    // дальний край едет к соседу, ближний остаётся на месте, поэтому между телом и
+    // хвостом нет зазора. При росте (съела еду) хвост остаётся на месте.
+    if (n >= 2 && prev.size() == n &&
+        (prev.back().x != snake.back().x || prev.back().y != snake.back().y)) {
+        const Point tp = prev.back();
+        const float ax = static_cast<float>(snake[n - 1].x - tp.x);
+        const float ay = static_cast<float>(snake[n - 1].y - tp.y);
+        float x0 = tp.x;
+        float y0 = tp.y;
+        float x1 = tp.x + 1.0f;
+        float y1 = tp.y + 1.0f;
+        if (ax > 0.0f) {
+            x0 = tp.x + move_t;
+        } else if (ax < 0.0f) {
+            x1 = tp.x + 1.0f - move_t;
+        } else if (ay > 0.0f) {
+            y0 = tp.y + move_t;
+        } else if (ay < 0.0f) {
+            y1 = tp.y + 1.0f - move_t;
+        }
+        auto xs = [&](float cx) { return static_cast<float>(offset_x) + cx * cell; };
+        auto ys = [&](float cy) { return static_cast<float>(offset_y) + cy * cell; };
+        QuadVertex tq[4] = {
+            {xs(x0), ys(y0), sample(point_t(x0, y0))},
+            {xs(x1), ys(y0), sample(point_t(x1, y0))},
+            {xs(x1), ys(y1), sample(point_t(x1, y1))},
+            {xs(x0), ys(y1), sample(point_t(x0, y1))},
+        };
+        ui.fill_quad(tq);
     }
 
     // Глаза головы: позиция берётся из интерполированной позиции головы.
