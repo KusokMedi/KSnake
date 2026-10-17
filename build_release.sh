@@ -99,6 +99,7 @@ mkdir -p "$APPDIR/usr/share/applications"
 
 cp "$LINUX_BUILD_DIR/snake" "$APPDIR/usr/bin/snake"
 cp "$ROOT/assets/font.ttf" "$APPDIR/usr/bin/assets/font.ttf"
+cp "$ROOT/assets/ksnake-icon.bmp" "$APPDIR/usr/bin/assets/ksnake-icon.bmp"
 cp "$ROOT/VERSION" "$APPDIR/usr/bin/VERSION"
 
 cat > "$APPDIR/usr/bin/KSnake.sh" <<'EOF'
@@ -127,6 +128,7 @@ Exec=AppRun
 Icon=ksnake
 Type=Application
 Categories=Game;
+StartupWMClass=KSnake
 EOF
 
 for icon_size in 16 24 32 48 64 128 256; do
@@ -177,11 +179,53 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 EOF
 
+# Ресурс внутреннего KSnake.exe: иконка + VERSIONINFO, чтобы в Task Manager у
+# запущенного процесса было осмысленное имя/описание. Обёртка-singlefile ниже
+# несёт собственный ICON; здесь — именно exe, который она запускает.
+V_MAJOR="${VERSION%%.*}"
+V_REST="${VERSION#*.}"
+V_MINOR="${V_REST%%.*}"
+[[ "$V_REST" == "$V_MINOR" ]] && V_PATCH=0 || V_PATCH="${V_REST#*.}"
+[[ "$V_MINOR" =~ ^[0-9]+$ ]] || V_MINOR=0
+[[ "$V_PATCH" =~ ^[0-9]+$ ]] || V_PATCH=0
+WINRES_RC="$CACHE_DIR/ksnake-winres.rc"
+cat > "$WINRES_RC" <<EOF
+1 ICON "$ICON_ICO"
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION $V_MAJOR,$V_MINOR,$V_PATCH,0
+PRODUCTVERSION $V_MAJOR,$V_MINOR,$V_PATCH,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS 0x40004L
+FILETYPE 0x1L
+FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "KSnake"
+            VALUE "FileDescription", "KSnake"
+            VALUE "FileVersion", "$VERSION"
+            VALUE "InternalName", "KSnake"
+            VALUE "OriginalFilename", "KSnake.exe"
+            VALUE "ProductName", "KSnake"
+            VALUE "ProductVersion", "$VERSION"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+EOF
+
 safe_rm "$WIN_BUILD_DIR"
 cmake -S "$ROOT" -B "$WIN_BUILD_DIR" \
     -DCMAKE_TOOLCHAIN_FILE="$CACHE_DIR/toolchain-mingw.cmake" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH="$SDL_SRC;$TTF_SRC" \
+    -DKS_WINRES_RC="$WINRES_RC" \
     -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="$WIN_BUILD_DIR" >/dev/null
 cmake --build "$WIN_BUILD_DIR" -j"$(nproc)" >/dev/null
 [[ -x "$WIN_BUILD_DIR/snake.exe" ]] || fail "windows build did not produce snake.exe"

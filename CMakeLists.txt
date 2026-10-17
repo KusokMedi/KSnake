@@ -48,6 +48,12 @@ add_executable(snake
 )
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set_target_properties(snake PROPERTIES WIN32_EXECUTABLE TRUE)
+    # Ресурс с иконкой и VERSIONINFO (имя/описание для Task Manager). Файл .rc
+    # генерирует release-скрипт и передаёт через -DKS_WINRES_RC; при обычной
+    # сборке переменная пуста и exe выходит без явного ресурса.
+    if(KS_WINRES_RC)
+        target_sources(snake PRIVATE "${KS_WINRES_RC}")
+    endif()
     target_include_directories(snake PRIVATE
         ${SDL2_INCLUDE} ${SDL2TTF_INCLUDE} ${CMAKE_SOURCE_DIR}/third_party)
     target_link_libraries(snake ${SDL2_LIB} ${SDL2TTF_LIB} Threads::Threads shell32 -static)
