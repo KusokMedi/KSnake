@@ -73,6 +73,7 @@
 ./build.sh          # настройка и сборка в build/ (по умолчанию Release)
 ./start.sh          # собрать при необходимости и запустить build/snake с --debug в stdout
 ./fresh-start.sh    # удалить build/, собрать заново и запустить
+./freshstart.sh     # build.sh, затем start.sh
 ```
 
 `build.sh` принимает переменную окружения `BUILD_DIR`; остальные скрипты тоже её используют.
@@ -134,6 +135,7 @@ KSnake/
 ├── build_release.sh     # релизная сборка (AppImage + Windows exe)
 ├── start.sh             # запуск
 ├── fresh-start.sh       # удалить build/, собрать заново и запустить
+├── freshstart.sh        # build.sh, затем start.sh
 └── CMakeLists.txt       # конфигурация сборки
 ```
 
