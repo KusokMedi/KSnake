@@ -120,24 +120,6 @@ void draw_field(Ui& ui, const Game& game, float move_t) {
         return i < prev.size() ? prev[i].y + (snake[i].y - prev[i].y) * move_t
                                : static_cast<float>(snake[i].y);
     };
-    // Заливка «сустава» между двумя соседними сегментами. При повороте их
-    // квадраты расходятся по обеим осям и между ними оставался бы клин фона;
-    // прямоугольник по габаритам обоих квадратов его закрывает. При движении по
-    // прямой габарит совпадает с самими клетками и ничего не меняет.
-    auto fill_joint = [&](float ax, float ay, float bx, float by) {
-        float min_x = std::min(ax, bx) - 0.5f;
-        float min_y = std::min(ay, by) - 0.5f;
-        float max_x = std::max(ax, bx) + 0.5f;
-        float max_y = std::max(ay, by) + 0.5f;
-        int x0 = offset_x + static_cast<int>(std::lround(min_x * cell));
-        int y0 = offset_y + static_cast<int>(std::lround(min_y * cell));
-        int x1 = offset_x + static_cast<int>(std::lround(max_x * cell));
-        int y1 = offset_y + static_cast<int>(std::lround(max_y * cell));
-        ui.fill_rect(x0, y0, x1 - x0, y1 - y0, 39, 174, 96);
-    };
-    for (size_t i = 0; i + 1 < snake.size(); ++i) {
-        fill_joint(seg_x(i), seg_y(i), seg_x(i + 1), seg_y(i + 1));
-    }
     for (size_t i = 0; i < snake.size(); ++i) {
         float sx = seg_x(i);
         float sy = seg_y(i);
