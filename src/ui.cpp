@@ -236,6 +236,15 @@ void Ui::draw_cell_f(float x, float y, uint8_t r, uint8_t g, uint8_t b) {
               offset_y_ + static_cast<int>(std::lround(y * cell_)), cell_, cell_, r, g, b);
 }
 
+void Ui::fill_circle(int cx, int cy, int radius, uint8_t r, uint8_t g, uint8_t b) {
+    if (radius <= 0) return;
+    for (int dy = -radius; dy <= radius; ++dy) {
+        int span = static_cast<int>(
+            std::lround(std::sqrt(static_cast<double>(radius) * radius - static_cast<double>(dy) * dy)));
+        fill_rect(cx - span, cy + dy, 2 * span + 1, 1, r, g, b);
+    }
+}
+
 std::string Ui::ellipsize(TTF_Font* font, const std::string& text, int max_w) const {
     if (max_w <= 0 || !font) return text;
     int tw = 0, th = 0;
