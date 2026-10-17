@@ -80,7 +80,7 @@ for sig in TERM INT; do
     t0=$(date +%s%N)
     SDL_VIDEODRIVER=dummy timeout -s "$sig" -k 2 1 "$BIN" --debug "$OUT/sig_$sig.log" >/dev/null 2>&1
     rc=$?; t1=$(date +%s%N); ms=$(( (t1 - t0) / 1000000 ))
-    left=$(pgrep -x snake | wc -l)
+    left=$(pgrep -x KSnake | wc -l)
     echo "  SIG$sig -> rc=$rc за ${ms}ms, процессов осталось: $left"
     [ "$rc" = "124" ] && [ "$ms" -le 3000 ] && [ "$left" = "0" ] \
         && ok "SIG$sig: игра завершается за ${ms}ms, процессов не осталось" \

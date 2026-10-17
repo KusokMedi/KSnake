@@ -33,5 +33,8 @@ for size in "${SIZES[@]}"; do
 done
 "$CONV" "${ico_pngs[@]}" "$DIR/ksnake.ico"
 
+# Иконка окна для SDL_SetWindowIcon: без SDL_image игра грузит только BMP.
+"$CONV" "$DIR/ksnake-256.png" "$DIR/ksnake-icon.bmp"
+
 echo "готово: ${SIZES[*]}"
 "$CONV" identify "$DIR/ksnake.ico" | sed 's/^/  /'

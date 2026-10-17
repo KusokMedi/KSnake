@@ -58,7 +58,9 @@ for size in $SIZES; do
             sleep 0.2; waited=$((waited+1))
             kill -0 "$spid" 2>/dev/null || break
         done
-        pkill -x snake_test 2>/dev/null
+        # Игра называет процесс KSnake, поэтому снимаем весь тестовый процесс
+        # по группе, созданной setsid, а не по имени бинарника.
+        kill -TERM -- "-$spid" 2>/dev/null || kill -TERM "$spid" 2>/dev/null
         wait "$spid" 2>/dev/null
         if [ ! -f "$base.bmp.$SHOT_N.bmp" ]; then
             echo "  FAIL $scr: кадр $SHOT_N не сохранён"; fail=$((fail+1))

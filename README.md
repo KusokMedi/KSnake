@@ -27,6 +27,10 @@ Read this in [Русский](README_RU.md).
   not shift when the window is resized from any corner. On Wayland sessions the game uses
   X11 (XWayland) when available, because SDL cannot report the window position on native
   Wayland. Without XWayland, or when `SDL_VIDEODRIVER` is set, the default backend is used
+- The application identifies as `KSnake`: the process name (shown in system monitors) and
+  the X11 `WM_CLASS`/app id are `KSnake`, and the window shows the game icon. The AppImage
+  ships a matching `.desktop` (`StartupWMClass=KSnake`), and the Windows `.exe` carries the
+  icon plus `VERSIONINFO`, so Task Manager shows the name and description
 - Fullscreen support (F11)
 - Cross-platform: Linux and Windows
 - Release script producing an AppImage and a single-file Windows `.exe`

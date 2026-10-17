@@ -21,7 +21,7 @@
     KS_SOFT=1 KS_SCREEN=menu KS_SHOT=tests/build/u.bmp KS_SHOTS=240 \
         setsid tests/build/snake_test --debug tests/build/run.log </dev/null \
         >/dev/null 2>&1 &
-    sleep 8; pkill -x snake_test
+    sleep 8; pkill -x KSnake
     python3 tests/check_shot.py "tests/build/u.bmp.240.bmp"
 
 Если в src/ изменились строки-якоря, скрипт падает с понятной ошибкой: молча

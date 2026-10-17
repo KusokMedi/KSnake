@@ -29,6 +29,16 @@ std::string trim_str(const std::string& s) {
     return s.substr(b, e - b + 1);
 }
 
+void set_process_name(const char* name) {
+#ifdef __linux__
+    // Меняет /proc/self/comm: имя в top/htop/системном мониторе. На Windows имя
+    // процесса — это имя exe, изменить его нельзя, поэтому там это no-op.
+    if (name && *name) prctl(PR_SET_NAME, name, 0, 0, 0);
+#else
+    (void)name;
+#endif
+}
+
 uint32_t fnv1a(const std::string& s) {
     uint32_t h = 2166136261u;
     for (char c : s) {

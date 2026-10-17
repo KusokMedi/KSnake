@@ -8,6 +8,10 @@ namespace ks {
 
 std::string trim_str(const std::string& s);
 
+// Имя процесса для системных мониторов. На Linux меняет /proc/self/comm
+// (prctl PR_SET_NAME); на Windows — no-op: там имя берётся из имени exe.
+void set_process_name(const char* name);
+
 // Подпись scores.json: защищает рекорд от подмены файла, но не от его удаления.
 uint32_t fnv1a(const std::string& s);
 

@@ -47,6 +47,39 @@ void open_url(const std::string& url, const std::function<void(const std::string
 #endif
 }
 
+// Иконка окна для панели задач и композитора. BMP — единственный формат,
+// который SDL2 грузит без SDL_image. Файл ищем рядом с exe (SDL_GetBasePath), а
+// затем относительно CWD; если не нашли — молча оставляем иконку по умолчанию.
+void apply_window_icon(SDL_Window* window, const std::function<void(const std::string&)>& log) {
+#ifdef _WIN32
+    // На Windows иконку окна и процесса даёт ресурс ICON, вшитый в exe: отдельный
+    // BMP не нужен. Под Wayland-композиторами (напр. Hyprland) SDL-иконка тоже не
+    // видна — там иконку даёт .desktop по WM_CLASS/app_id.
+    (void)window;
+    (void)log;
+#else
+    const char* rel = "assets/ksnake-icon.bmp";
+    std::string path;
+    if (char* base = SDL_GetBasePath()) {
+        std::string cand = std::string(base) + rel;
+        if (FILE* f = std::fopen(cand.c_str(), "rb")) {
+            std::fclose(f);
+            path = cand;
+        }
+        SDL_free(base);
+    }
+    if (path.empty()) path = rel;
+    SDL_Surface* icon = SDL_LoadBMP(path.c_str());
+    if (!icon) {
+        log("ICON not found: " + path);
+        return;
+    }
+    SDL_SetWindowIcon(window, icon);
+    SDL_FreeSurface(icon);
+    log("ICON path=" + path);
+#endif
+}
+
 }  // namespace
 
 int run(int argc, char* argv[]) {
@@ -89,6 +122,14 @@ int run(int argc, char* argv[]) {
     }
     if (forced_x11) log_event("VIDEO x11 (XWayland), screen-anchored background");
 #endif
+
+    // Идентичность приложения: имя процесса для системных мониторов и WM_CLASS
+    // для панелей задач/композитора. WM_CLASS задаётся через переменную окружения
+    // до SDL_Init — в SDL2 hint SDL_APP_NAME на него не влияет. Чужое значение не
+    // перетираем (overwrite=0).
+    set_process_name("KSnake");
+    SDL_setenv("SDL_VIDEO_X11_WMCLASS", "KSnake", 0);
+    SDL_SetHint(SDL_HINT_APP_NAME, "KSnake");
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
@@ -157,6 +198,8 @@ int run(int argc, char* argv[]) {
     if (SDL_GetRendererInfo(renderer, &rinfo) == 0) {
         log_event("RENDERER driver=%s", rinfo.name);
     }
+
+    apply_window_icon(window, log_line);
 
     const uint32_t seed = static_cast<uint32_t>(std::time(nullptr)) ^
                           static_cast<uint32_t>(SDL_GetTicks()) ^ std::random_device{}();
