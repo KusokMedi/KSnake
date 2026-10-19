@@ -147,19 +147,32 @@ namespace {
 #ifdef _WIN32
 
 // Правила кавычения CreateProcess: аргумент оборачивается в кавычки только если
-// внутри есть пробел или кавычка, а кавычка внутри удваивается и обратным слэшем.
+// внутри есть пробел или кавычка. Обратный слэш перед кавычкой — часть escape-
+// последовательности \" , поэтому такие слэши удваиваются, а хвостовые слэши
+// удваиваются всегда: иначе "C:\Program Files\" закроет кавычку слэшем и
+// аргумент прилипнет к следующему (или потеряет последний слэш).
 std::string quote_win_arg(const std::string& s) {
-    if (!s.empty() && s.find_first_of(" \t\n\v\"") == std::string::npos) return s;
+    if (s.empty()) return "\"\"";
+    if (s.find_first_of(" \t\n\v\"") == std::string::npos) return s;
+
     std::string out = "\"";
+    size_t backslashes = 0;
     for (char c : s) {
         if (c == '\\') {
-            out += c;
-        } else if (c == '"') {
-            out += "\\\"";
-        } else {
-            out += c;
+            ++backslashes;
+            continue;
         }
+        if (c == '"') {
+            out.append(backslashes * 2 + 1, '\\');
+            out += c;
+            backslashes = 0;
+            continue;
+        }
+        out.append(backslashes, '\\');
+        backslashes = 0;
+        out += c;
     }
+    out.append(backslashes * 2, '\\');
     out += "\"";
     return out;
 }
