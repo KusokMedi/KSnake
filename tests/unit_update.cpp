@@ -195,6 +195,17 @@ void test_result_is_fresh() {
         v.state_ = UpdateState::Checking;
         CHECK(!v.result_is_fresh(1001), "Checking is never fresh");
     }
+    // Неудача не кэшируется: после неё ручная проверка должна запускаться
+    // сразу, а не ждать истечения TTL от предыдущего успеха.
+    {
+        UpdateChecker v(g_pref, "1.1");
+        v.result_ms_ = 1000;
+        v.state_ = UpdateState::UpToDate;
+        CHECK(v.result_is_fresh(1001), "successful result is fresh");
+        v.fail("stub failure");
+        CHECK(v.state() == UpdateState::Failed, "fail() switches to Failed");
+        CHECK(!v.result_is_fresh(1001), "failed check is never fresh");
+    }
 }
 
 // ---------------------------------------------------------------- 4.4.3

@@ -264,6 +264,10 @@ void UpdateChecker::start(bool automatic) {
 void UpdateChecker::fail(const std::string& msg) {
     state_ = UpdateState::Failed;
     note_ = msg;
+    // Неудача не кэшируется: без сброса отметки времени недавний успешный
+    // результат делал бы состояние «свежим» и ручной клик по пункту меню
+    // молча ничего бы не запускал до истечения TTL.
+    result_ms_ = 0;
     if (automatic_) mark_checked();
     if (log_) log_("UPDATE failed: " + msg);
 }
