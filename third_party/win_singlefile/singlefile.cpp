@@ -76,7 +76,13 @@ bool make_private_dir(const std::wstring& temp_root, std::wstring& out) {
         std::wstring cand = temp_root + L"KSnake-data-" +
                             std::to_wstring(GetCurrentProcessId());
         if (i > 0) cand += L"-" + std::to_wstring(i);
-        if (CreateDirectoryW(cand.c_str(), nullptr) == FALSE) continue;
+        if (CreateDirectoryW(cand.c_str(), nullptr) == FALSE) {
+            // Повтор имеет смысл только при занятом имени. Любая другая ошибка
+            // (нет каталога TEMP, нет прав) воспроизведётся и на новой попытке,
+            // поэтому 10000 итераций здесь — просто зависание на пустом месте.
+            if (GetLastError() != ERROR_ALREADY_EXISTS) return false;
+            continue;
+        }
         DWORD attr = GetFileAttributesW(cand.c_str());
         if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY) != 0 &&
             (attr & FILE_ATTRIBUTE_REPARSE_POINT) == 0) {
@@ -88,6 +94,13 @@ bool make_private_dir(const std::wstring& temp_root, std::wstring& out) {
     return false;
 }
 
+// Лаунчер запускается двойным кликом и не имеет консоли: без диалога любая
+// фатальная ошибка выглядит как «ничего не произошло».
+int fail_box(const std::wstring& what, int code) {
+    MessageBoxW(nullptr, what.c_str(), L"KSnake", MB_OK | MB_ICONERROR);
+    return code;
+}
+
 }  // namespace
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
@@ -96,11 +109,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     const std::wstring temp_root(buf, n);
 
     std::wstring dir;
-    if (!make_private_dir(temp_root, dir)) return 1;
+    if (!make_private_dir(temp_root, dir)) {
+        return fail_box(L"KSnake could not create a temporary folder.\n\n"
+                        L"Check that the TEMP folder exists and is writable.",
+                        1);
+    }
 
     if (!make_dir(dir + L"\\assets")) {
         remove_extracted(dir);
-        return 2;
+        return fail_box(L"KSnake could not unpack its files to the temporary folder.", 2);
     }
 
     struct {
@@ -117,7 +134,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     for (const auto& item : kFiles) {
         if (extract_resource(item.id, dir + item.rel)) continue;
         remove_extracted(dir);
-        return item.err;
+        return fail_box(L"KSnake could not unpack its files to the temporary folder.\n\n"
+                        L"Missing resource: " + std::to_wstring(item.id),
+                        item.err);
     }
 
     const wchar_t* raw = GetCommandLineW();
@@ -133,8 +152,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     BOOL ok = CreateProcessW(app.c_str(), cmd.data(), nullptr, nullptr, FALSE,
                               0, nullptr, dir.c_str(), &si, &pi);
     if (!ok) {
+        const DWORD err = GetLastError();
         remove_extracted(dir);
-        return 7;
+        return fail_box(L"KSnake could not start the game executable.\n\n"
+                        L"Error " + std::to_wstring(err),
+                        7);
     }
 
     CloseHandle(pi.hThread);
