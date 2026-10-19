@@ -65,6 +65,7 @@ void Ui::destroy() {
         SDL_DestroyTexture(bg_tex_);
         bg_tex_ = nullptr;
         bg_screen_w_ = bg_screen_h_ = 0;
+        bg_lay_w_ = bg_lay_h_ = 0;
     }
     drop_text_cache();
     for (auto& kv : font_cache_) {
@@ -132,11 +133,19 @@ void Ui::apply_layout(int win_w, int win_h) {
 
 void Ui::ensure_background(int screen_w, int screen_h) {
     if (screen_w < 1 || screen_h < 1) return;
-    if (bg_tex_ && screen_w == bg_screen_w_ && screen_h == bg_screen_h_) return;
+    // Перестраиваем фон не только при смене размера дисплея, но и при смене
+    // размера окна: ускоренный рендерер после ресайза теряет содержимое
+    // offscreen-текстуры (видно на D3D11 под Wine — фон становится чёрным), и
+    // без пересборки узор пропадает до следующего изменения размера дисплея.
+    if (bg_tex_ && screen_w == bg_screen_w_ && screen_h == bg_screen_h_ &&
+        lay_w_ == bg_lay_w_ && lay_h_ == bg_lay_h_) {
+        return;
+    }
     if (bg_tex_) {
         SDL_DestroyTexture(bg_tex_);
         bg_tex_ = nullptr;
         bg_screen_w_ = bg_screen_h_ = 0;
+        bg_lay_w_ = bg_lay_h_ = 0;
     }
     int sq = CHECKER_SQ < 1 ? 1 : CHECKER_SQ;
     SDL_Texture* tex = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888,
@@ -171,6 +180,18 @@ void Ui::ensure_background(int screen_w, int screen_h) {
     bg_tex_ = tex;
     bg_screen_w_ = screen_w;
     bg_screen_h_ = screen_h;
+    bg_lay_w_ = lay_w_;
+    bg_lay_h_ = lay_h_;
+}
+
+void Ui::invalidate_gpu_resources() {
+    if (bg_tex_) {
+        SDL_DestroyTexture(bg_tex_);
+        bg_tex_ = nullptr;
+        bg_screen_w_ = bg_screen_h_ = 0;
+        bg_lay_w_ = bg_lay_h_ = 0;
+    }
+    drop_text_cache();
 }
 
 void Ui::fill_rect(int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b) {

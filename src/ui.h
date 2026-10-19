@@ -50,6 +50,10 @@ public:
     bool load_fonts();
     // Освобождает шрифты и текстуры; вызывать до SDL_DestroyRenderer.
     void destroy();
+    // Сбрасывает текстуры, которые живут долго (фон и кэш текста). Нужно после
+    // потери устройства: SDL тогда освобождает все свои текстуры, и старые
+    // ссылки показывают пустоту или чёрный прямоугольник.
+    void invalidate_gpu_resources();
 
     void apply_layout(int win_w, int win_h);
     // Строит статичный фон размером с экран (один раз): узор симметричен
@@ -121,6 +125,8 @@ private:
     SDL_Texture* bg_tex_ = nullptr;
     int bg_screen_w_ = 0;
     int bg_screen_h_ = 0;
+    int bg_lay_w_ = 0;
+    int bg_lay_h_ = 0;
 };
 
 }  // namespace ks

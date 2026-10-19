@@ -474,6 +474,13 @@ int run(int argc, char* argv[]) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
+            } else if (event.type == SDL_RENDER_DEVICE_RESET) {
+                // SDL освободил все текстуры (D3D-устройство удалено: смена
+                // драйвера, переход в фуллскрин и т.п.). Без пересоздания фон и
+                // кэш текста останутся пустыми до конца работы.
+                log_event("RENDERER device reset");
+                ui.invalidate_gpu_resources();
+                apply_window_layout();
             } else if (event.type == SDL_WINDOWEVENT) {
                 if (event.window.event == SDL_WINDOWEVENT_RESIZED ||
                     event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
