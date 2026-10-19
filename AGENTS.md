@@ -194,6 +194,8 @@ The historical checker `tests/check_shot.py` uses Pillow and optionally Tesserac
 
 Preserve Linux and Windows 10/11 support. Build both targets when tools permit. If Windows compilation cannot run because MinGW or another dependency is missing, state that it was not verified and why; a Linux-only build is not proof of Windows compatibility.
 
+Where MinGW and Wine are available, `tests/run_windows_tests.sh` exercises the Windows-only code paths (UTF-8 paths, atomic score save, argument quoting, child exit codes); its prerequisites and exit codes are documented in `docs/TESTING.md`.
+
 ### Temporary output
 
 Put temporary scripts, screenshots, binaries, and logs under appropriate generated/test directories (historically `tests/build/`). Keep artifacts out of tracked paths. Before deleting temporary output, verify it was created by the current task and is not user-owned.
