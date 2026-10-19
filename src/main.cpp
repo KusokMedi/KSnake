@@ -662,10 +662,16 @@ int run(int argc, char* argv[]) {
                         }
                     } else {
                         switch (sc) {
-                            case SDL_SCANCODE_UP: game.queue_turn(0, -1); break;
-                            case SDL_SCANCODE_DOWN: game.queue_turn(0, 1); break;
-                            case SDL_SCANCODE_LEFT: game.queue_turn(-1, 0); break;
-                            case SDL_SCANCODE_RIGHT: game.queue_turn(1, 0); break;
+                            // WASD живёт рядом со стрелками: скан-коды не зависят
+                            // от раскладки, поэтому набор работает и на кириллице.
+                            case SDL_SCANCODE_UP:
+                            case SDL_SCANCODE_W: game.queue_turn(0, -1); break;
+                            case SDL_SCANCODE_DOWN:
+                            case SDL_SCANCODE_S: game.queue_turn(0, 1); break;
+                            case SDL_SCANCODE_LEFT:
+                            case SDL_SCANCODE_A: game.queue_turn(-1, 0); break;
+                            case SDL_SCANCODE_RIGHT:
+                            case SDL_SCANCODE_D: game.queue_turn(1, 0); break;
                             case SDL_SCANCODE_ESCAPE:
                                 paused = true;
                                 log_event("PAUSE on");

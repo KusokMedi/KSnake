@@ -46,7 +46,7 @@ Read this in [Русский](README_RU.md).
 
 | Action | Keys |
 |---|---|
-| Move | Arrow keys |
+| Move | Arrow keys or `W` `A` `S` `D` |
 | Pause | `Esc` |
 | Resume from pause | `Space` |
 | Back to menu (from pause / Game Over) | `Esc` |
