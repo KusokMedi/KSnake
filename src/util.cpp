@@ -48,12 +48,12 @@ uint32_t fnv1a(const std::string& s) {
     return h;
 }
 
-bool parse_version(const std::string& s, int out[3]) {
-    out[0] = out[1] = out[2] = 0;
+bool parse_version(const std::string& s, Version& out) {
+    out.fill(0);
     size_t i = 0;
     while (i < s.size() && !is_digit(s[i])) ++i;
     if (i >= s.size()) return false;
-    for (int part = 0; part < 3; ++part) {
+    for (size_t part = 0; part < out.size(); ++part) {
         if (i >= s.size() || !is_digit(s[i])) break;
         int v = 0;
         while (i < s.size() && is_digit(s[i])) {
@@ -70,14 +70,18 @@ bool parse_version(const std::string& s, int out[3]) {
     return true;
 }
 
-std::string format_version(const int v[3]) {
-    std::string s = std::to_string(v[0]) + "." + std::to_string(v[1]);
-    if (v[2] != 0) s += "." + std::to_string(v[2]);
+std::string format_version(const Version& v) {
+    size_t last = 1;  // меньше двух частей версия не печатается
+    for (size_t i = 1; i < v.size(); ++i) {
+        if (v[i] != 0) last = i;
+    }
+    std::string s = std::to_string(v[0]);
+    for (size_t i = 1; i <= last; ++i) s += "." + std::to_string(v[i]);
     return s;
 }
 
-int compare_versions(const int a[3], const int b[3]) {
-    for (int i = 0; i < 3; ++i) {
+int compare_versions(const Version& a, const Version& b) {
+    for (size_t i = 0; i < a.size(); ++i) {
         if (a[i] != b[i]) return a[i] < b[i] ? -1 : 1;
     }
     return 0;

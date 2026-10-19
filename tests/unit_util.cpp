@@ -52,100 +52,127 @@ std::string tmp_path(const char* name) { return std::string("/tmp/ks_unit_") + n
 
 // ---------------------------------------------------------------- 4.3.1
 void test_parse_version() {
-    struct Case { const char* in; bool ok; int a, b, c; };
+    struct Case { const char* in; bool ok; int a, b, c, d; };
     const Case cases[] = {
-        {"1.2.3", true, 1, 2, 3},
-        {"v1.2.3", true, 1, 2, 3},
-        {"V1.2.3", true, 1, 2, 3},
-        {"1.2", true, 1, 2, 0},
-        {"1", true, 1, 0, 0},
-        {"", false, 0, 0, 0},
-        {"abc", false, 0, 0, 0},
-        {"1.2.3.4", true, 1, 2, 3},
-        {"1.2.3-beta", true, 1, 2, 3},
-        {"01.02.03", true, 1, 2, 3},
-        {"1.10.0", true, 1, 10, 0},
-        {"  1.2.3  ", true, 1, 2, 3},
-        {"\n1.2.3\n", true, 1, 2, 3},
-        {"\r\n1.2\r\n", true, 1, 2, 0},
-        {"KSnake v1.0", true, 1, 0, 0},
-        {"release-2.5.9-rc1", true, 2, 5, 9},
-        {"999999999999.0.0", true, 999999, 0, 0},   // без переполнения int
-        {"1.2.", true, 1, 2, 0},
-        {".1.2.3", true, 1, 2, 3},
-        {"0.0.0", true, 0, 0, 0},
+        {"1.2.3", true, 1, 2, 3, 0},
+        {"v1.2.3", true, 1, 2, 3, 0},
+        {"V1.2.3", true, 1, 2, 3, 0},
+        {"1.2", true, 1, 2, 0, 0},
+        {"1", true, 1, 0, 0, 0},
+        {"", false, 0, 0, 0, 0},
+        {"abc", false, 0, 0, 0, 0},
+        {"1.2.3.4", true, 1, 2, 3, 4},
+        {"v1.1.2.1", true, 1, 1, 2, 1},
+        {"1.1.2.1", true, 1, 1, 2, 1},
+        {"1.2.3.4.5", true, 1, 2, 3, 4},              // пятая часть игнорируется
+        {"1.0.0.10", true, 1, 0, 0, 10},
+        {"1.2.3-beta", true, 1, 2, 3, 0},
+        {"01.02.03", true, 1, 2, 3, 0},
+        {"1.10.0", true, 1, 10, 0, 0},
+        {"  1.2.3  ", true, 1, 2, 3, 0},
+        {"\n1.2.3\n", true, 1, 2, 3, 0},
+        {"\r\n1.2\r\n", true, 1, 2, 0, 0},
+        {"KSnake v1.0", true, 1, 0, 0, 0},
+        {"release-2.5.9-rc1", true, 2, 5, 9, 0},
+        {"999999999999.0.0", true, 999999, 0, 0, 0},  // без переполнения int
+        {"1.2.", true, 1, 2, 0, 0},
+        {".1.2.3", true, 1, 2, 3, 0},
+        {"0.0.0", true, 0, 0, 0, 0},
     };
     for (const Case& c : cases) {
-        int v[3] = {-7, -7, -7};
+        Version v;
+        v.fill(-7);
         bool ok = parse_version(c.in, v);
         CHECK(ok == c.ok, std::string("parse_version(\"") + c.in + "\") ok=" +
                              (c.ok ? "true" : "false") + " (got " + (ok ? "true" : "false") + ")");
         if (ok && c.ok) {
-            CHECK(v[0] == c.a && v[1] == c.b && v[2] == c.c,
+            CHECK(v[0] == c.a && v[1] == c.b && v[2] == c.c && v[3] == c.d,
                   std::string("parse_version(\"") + c.in + "\") = " + std::to_string(c.a) + "." +
-                      std::to_string(c.b) + "." + std::to_string(c.c) + " (got " +
-                      std::to_string(v[0]) + "." + std::to_string(v[1]) + "." +
-                      std::to_string(v[2]) + ")");
+                      std::to_string(c.b) + "." + std::to_string(c.c) + "." + std::to_string(c.d) +
+                      " (got " + std::to_string(v[0]) + "." + std::to_string(v[1]) + "." +
+                      std::to_string(v[2]) + "." + std::to_string(v[3]) + ")");
         }
     }
     // version.cpp может передать неинициализированный массив — проверяем,
-    // что parse_version всё равно заполняет его целиком.
+    // что parse_version всё равно заполняет его целиком (все четыре части).
     {
-        int v[3] = {5, 5, 5};
+        Version v;
+        v.fill(5);
         parse_version("1.2.3", v);
-        CHECK(v[0] == 1 && v[1] == 2 && v[2] == 3, "parse_version overwrites all three parts");
+        CHECK(v[0] == 1 && v[1] == 2 && v[2] == 3 && v[3] == 0,
+              "parse_version overwrites all four parts");
     }
 }
 
 void test_format_version() {
-    int v[3] = {1, 2, 3};
+    Version v{1, 2, 3, 0};
     CHECK(format_version(v) == "1.2.3", "format_version 1.2.3");
-    v[0] = 1; v[1] = 2; v[2] = 0;
+    v = {1, 2, 0, 0};
     CHECK(format_version(v) == "1.2", "format_version 1.2.0 -> 1.2");
-    v[0] = 0; v[1] = 0; v[2] = 0;
+    v = {0, 0, 0, 0};
     CHECK(format_version(v) == "0.0", "format_version 0.0.0 -> 0.0");
-    v[0] = 1; v[1] = 10; v[2] = 0;
+    v = {1, 10, 0, 0};
     CHECK(format_version(v) == "1.10", "format_version 1.10.0 -> 1.10");
+    v = {1, 1, 2, 1};
+    CHECK(format_version(v) == "1.1.2.1", "format_version 1.1.2.1 keeps all parts");
+    v = {1, 1, 0, 1};
+    CHECK(format_version(v) == "1.1.0.1", "format_version 1.1.0.1 keeps the zero third part");
+    v = {1, 1, 0, 0};
+    CHECK(format_version(v) == "1.1", "format_version 1.1.0.0 -> 1.1");
     // Симметрия с parse_version: то, что разобрали, должно печататься обратно
     // без потери старших разрядов.
-    int rt[3];
+    Version rt;
     CHECK(parse_version("1.2.3", rt), "format round-trip: parse 1.2.3");
     CHECK(format_version(rt) == "1.2.3", "format round-trip 1.2.3 -> 1.2.3");
+    CHECK(parse_version("1.1.2.1", rt), "format round-trip: parse 1.1.2.1");
+    CHECK(format_version(rt) == "1.1.2.1", "format round-trip 1.1.2.1 -> 1.1.2.1");
+    CHECK(parse_version("1.1.0.1", rt), "format round-trip: parse 1.1.0.1");
+    CHECK(format_version(rt) == "1.1.0.1", "format round-trip 1.1.0.1 -> 1.1.0.1");
 }
 
 void test_compare_versions() {
-    int a[3] = {1, 10, 0};
-    int b[3] = {1, 9, 0};
+    Version a{1, 10, 0, 0};
+    Version b{1, 9, 0, 0};
     CHECK(compare_versions(a, b) > 0, "1.10.0 newer than 1.9.0");
     CHECK(compare_versions(b, a) < 0, "1.9.0 older than 1.10.0");
-    int c[3] = {1, 9, 0};
+    Version c{1, 9, 0, 0};
     CHECK(compare_versions(a, c) > 0, "1.10.0 newer than 1.9.0 (copy)");
     CHECK(compare_versions(c, a) < 0, "1.9.0 (copy) older than 1.10.0");
-    int d[3] = {1, 10, 0};
+    Version d{1, 10, 0, 0};
     CHECK(compare_versions(a, d) == 0, "equal versions compare to 0");
     CHECK(compare_versions(d, a) == 0, "equal versions compare to 0 (symmetric)");
-    int e[3] = {2, 0, 0};
+    Version e{2, 0, 0, 0};
     CHECK(compare_versions(e, a) > 0, "2.0.0 newer than 1.10.0");
-    int f[3] = {1, 10, 1};
+    Version f{1, 10, 1, 0};
     CHECK(compare_versions(f, a) > 0, "1.10.1 newer than 1.10.0");
+    // Четвёртая часть (номер сборки): 1.1.2.1 новее выпущенного 1.1.2, но
+    // старее 1.1.3.
+    Version g{1, 1, 2, 1};
+    Version h{1, 1, 2, 0};
+    Version i{1, 1, 3, 0};
+    CHECK(compare_versions(g, h) > 0, "1.1.2.1 newer than 1.1.2");
+    CHECK(compare_versions(h, g) < 0, "1.1.2 older than 1.1.2.1");
+    CHECK(compare_versions(i, g) > 0, "1.1.3 newer than 1.1.2.1");
+    CHECK(compare_versions(g, i) < 0, "1.1.2.1 older than 1.1.3");
+    CHECK(compare_versions(g, g) == 0, "1.1.2.1 equals itself");
     // Симметричность и транзитивность на 2000 случайных пар.
     std::mt19937 rng(12345);
     bool symmetric = true, transitive = true, antisym = true;
-    std::vector<std::array<int, 3>> pool;
+    std::vector<Version> pool;
     for (int i = 0; i < 60; ++i)
         pool.push_back({static_cast<int>(rng() % 20), static_cast<int>(rng() % 20),
-                        static_cast<int>(rng() % 5)});
+                        static_cast<int>(rng() % 5), static_cast<int>(rng() % 3)});
     int pairs = 0;
     for (size_t i = 0; i < pool.size(); ++i) {
         for (size_t j = 0; j < pool.size(); ++j) {
             for (size_t k = 0; k < pool.size(); k += 7) {
-                int x = compare_versions(pool[i].data(), pool[j].data());
-                int y = compare_versions(pool[j].data(), pool[i].data());
+                int x = compare_versions(pool[i], pool[j]);
+                int y = compare_versions(pool[j], pool[i]);
                 ++pairs;
                 if ((x < 0 && !(y > 0)) || (x > 0 && !(y < 0)) || (x == 0 && y != 0))
                     symmetric = false;
-                if (x > 0 && compare_versions(pool[j].data(), pool[k].data()) > 0 &&
-                    !(compare_versions(pool[i].data(), pool[k].data()) > 0))
+                if (x > 0 && compare_versions(pool[j], pool[k]) > 0 &&
+                    !(compare_versions(pool[i], pool[k]) > 0))
                     transitive = false;
                 if (x == 0 && !(pool[i] == pool[j])) antisym = false;
             }
@@ -235,7 +262,8 @@ void test_version_file() {
     {
         const char* src = "fallback";
         std::string v = load_app_version(&src);
-        int parsed[3] = {9, 9, 9};
+        Version parsed;
+        parsed.fill(9);
         CHECK(!parse_version(v, parsed),
               "a VERSION first line without digits is rejected by parse_version (got \"" + v + "\")");
         CHECK(v == "no digits here",

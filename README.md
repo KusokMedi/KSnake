@@ -150,6 +150,9 @@ KSnake/
 The current version lives in the [`VERSION`](VERSION) file at the repository root.
 The game reads it at startup from the folder next to the binary; `build_release.sh` uses it
 as the default release tag, so bumping that one file is enough to prepare a new release.
+A version is a dotted number of up to four parts (`1.1.2`, `1.1.2.1`); the fourth part is a
+build/hotfix number. The game shows all parts on the Updates screen and uses them when
+comparing its version with the latest release tag.
 
 ## Development and testing
 

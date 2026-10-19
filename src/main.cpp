@@ -177,7 +177,7 @@ int run(int argc, char* argv[]) {
     const char* version_source = "fallback";
     std::string app_version = load_app_version(&version_source);
     {
-        int parsed[3] = {0, 0, 0};
+        Version parsed{};
         if (!parse_version(app_version, parsed)) {
             log_event("VERSION bad value, using fallback");
             app_version = "1.0";

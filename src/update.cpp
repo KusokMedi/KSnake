@@ -84,7 +84,7 @@ std::string http_get(const std::string& url, const std::string& out_path,
 
 // Запрос без токена упирается в лимит GitHub 60/час на IP, поэтому ответ
 // разбираем осторожно: любое неожиданное поле трактуем как ошибку.
-bool extract_version(const json& j, int remote[3]) {
+bool extract_version(const json& j, Version& remote) {
     // tag_name — машинная версия релиза (v1.2.3), name — свободный заголовок
     // ("Hotfix for 1.0"), поэтому tag_name надёжнее и проверяется первым.
     for (const char* key : {"tag_name", "name"}) {
@@ -161,8 +161,8 @@ void UpdateChecker::restore_cached() {
     std::getline(in, rest);
     std::string url = trim_str(rest);
 
-    int remote[3] = {0, 0, 0};
-    int local[3] = {0, 0, 0};
+    Version remote{};
+    Version local{};
     parse_version(app_version_, local);
     if (parse_version(ver, remote)) {
         int cmp = compare_versions(remote, local);
@@ -320,7 +320,7 @@ void UpdateChecker::poll() {
         tag_ = j["tag_name"].get<std::string>();
     }
 
-    int remote[3] = {0, 0, 0};
+    Version remote{};
     if (!extract_version(j, remote)) {
         state_ = UpdateState::Unknown;
         result_ms_ = SDL_GetTicks64();
@@ -328,7 +328,7 @@ void UpdateChecker::poll() {
         return;
     }
 
-    int local[3] = {0, 0, 0};
+    Version local{};
     parse_version(app_version_, local);
     version_ = format_version(remote);
     int cmp = compare_versions(remote, local);

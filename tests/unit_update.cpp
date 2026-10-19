@@ -17,6 +17,8 @@
 #include "../src/update.h"
 #undef private
 
+#include "../src/util.h"
+
 using namespace ks;
 
 namespace {
@@ -109,32 +111,36 @@ std::string b64(const std::string& s) {
 
 // ---------------------------------------------------------------- 4.4.1
 void test_restore_cached() {
-    struct Case { const char* cache; int local[3]; UpdateState want; const char* what; };
+    struct Case { const char* cache; Version local; UpdateState want; const char* what; };
     const Case cases[] = {
-        {"1700000000 4 2.0 https://e\n", {1, 1, 0}, UpdateState::Available,
+        {"1700000000 4 2.0 https://e\n", {1, 1, 0, 0}, UpdateState::Available,
          "cached 2.0 vs local 1.1 -> Available"},
-        {"1700000000 4 0.9 https://e\n", {1, 1, 0}, UpdateState::Ahead,
+        {"1700000000 4 0.9 https://e\n", {1, 1, 0, 0}, UpdateState::Ahead,
          "cached 0.9 vs local 1.1 -> Ahead"},
-        {"1700000000 4 1.1 https://e\n", {1, 1, 0}, UpdateState::UpToDate,
+        {"1700000000 4 1.1 https://e\n", {1, 1, 0, 0}, UpdateState::UpToDate,
          "cached 1.1 vs local 1.1 -> UpToDate"},
-        {"1700000000 4 - https://e\n", {1, 1, 0}, UpdateState::Unknown,
+        {"1700000000 4 1.1.2 https://e\n", {1, 1, 2, 1}, UpdateState::Ahead,
+         "cached 1.1.2 vs local 1.1.2.1 -> Ahead (4th part)"},
+        {"1700000000 4 1.1.2.1 https://e\n", {1, 1, 2, 1}, UpdateState::UpToDate,
+         "cached 1.1.2.1 vs local 1.1.2.1 -> UpToDate"},
+        {"1700000000 4 - https://e\n", {1, 1, 0, 0}, UpdateState::Unknown,
          "cached state Unknown survives when the version is unparsable"},
-        {"1700000000 5 - \n", {1, 1, 0}, UpdateState::Idle,
+        {"1700000000 5 - \n", {1, 1, 0, 0}, UpdateState::Idle,
          "cached Failed with no version -> stays Idle (no stale Failed)"},
-        {"1700000000 2 - \n", {1, 1, 0}, UpdateState::Idle,
+        {"1700000000 2 - \n", {1, 1, 0, 0}, UpdateState::Idle,
          "cached Checking with no version -> stays Idle"},
-        {"", {1, 1, 0}, UpdateState::Idle, "empty cache -> Idle"},
-        {"garbage\n", {1, 1, 0}, UpdateState::Idle, "garbage cache -> Idle"},
+        {"", {1, 1, 0, 0}, UpdateState::Idle, "empty cache -> Idle"},
+        {"garbage\n", {1, 1, 0, 0}, UpdateState::Idle, "garbage cache -> Idle"},
         // Битое поле состояния больше не обнуляет кэш: состояние всё равно
         // пересчитывается через compare_versions, поэтому версия 2.0 доходит
         // до игрока, а состояние определяется сравнением с локальной.
-        {"1700000000 abc 2.0 \n", {1, 1, 0}, UpdateState::Available,
+        {"1700000000 abc 2.0 \n", {1, 1, 0, 0}, UpdateState::Available,
          "corrupt state field does not discard the cached version"},
     };
     for (const Case& c : cases) {
         reset_pref();
         write_file(g_pref + "update_check.txt", c.cache);
-        UpdateChecker u(g_pref, std::to_string(c.local[0]) + "." + std::to_string(c.local[1]));
+        UpdateChecker u(g_pref, format_version(c.local));
         u.restore_cached();
         CHECK(u.state() == c.want, std::string(c.what) + " (got state=" +
                                      std::to_string(static_cast<int>(u.state())) + ")");
@@ -324,6 +330,12 @@ void test_poll_transitions() {
              "remote 0.9 vs local 1.1 -> Ahead");
     run_case("{\"tag_name\":\"v1.1.0\"}", "1.1", UpdateState::UpToDate,
              "remote 1.1 vs local 1.1 -> UpToDate");
+    run_case("{\"tag_name\":\"v1.1.2\"}", "1.1.2.1", UpdateState::Ahead,
+             "remote 1.1.2 vs local 1.1.2.1 -> Ahead (local build number wins)");
+    run_case("{\"tag_name\":\"v1.1.2.1\"}", "1.1.2.1", UpdateState::UpToDate,
+             "remote 1.1.2.1 vs local 1.1.2.1 -> UpToDate");
+    run_case("{\"tag_name\":\"v1.1.3\"}", "1.1.2.1", UpdateState::Available,
+             "remote 1.1.3 vs local 1.1.2.1 -> Available");
     run_case("{\"message\":\"API rate limit exceeded for 1.2.3.4\"}", "1.1", UpdateState::Failed,
              "GitHub rate-limit message -> Failed");
     run_case("{\"message\":\"\xe2\x98\x83 snowman\"}", "1.1", UpdateState::Failed,

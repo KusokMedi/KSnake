@@ -407,7 +407,7 @@ void draw_updates(Ui& ui, ScreenState& st, const UpdateChecker& updates,
         {"Any key to go back", HintAction::Menu},
     };
 
-    int local[3] = {0, 0, 0};
+    Version local{};
     parse_version(app_version, local);
     std::string local_str = format_version(local);
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -15,13 +16,23 @@ void set_process_name(const char* name);
 // Подпись scores.json: защищает рекорд от подмены файла, но не от его удаления.
 uint32_t fnv1a(const std::string& s);
 
-// Принимает "1", "1.0", "v1.0.2" и любую строку с версией внутри ("KSnake v1.0").
-bool parse_version(const std::string& s, int out[3]);
+// Версия — до четырёх числовых частей: "1", "1.0", "v1.0.2", "1.1.2.1"
+// (четвёртая часть — номер сборки/хотфикса, как FILEVERSION в Windows).
+// Дальше четвёртой части номера не бывает, лишние игнорируются. Отдельный тип,
+// а не int[3], чтобы компилятор ловил вызовы со старым числом частей: иначе
+// недосчитанная часть молча писалась бы за границу массива.
+using Version = std::array<int, 4>;
 
-std::string format_version(const int v[3]);
+// Принимает "1", "1.0", "v1.0.2", "1.1.2.1" и любую строку с версией внутри
+// ("KSnake v1.0"). Заполняет все части (лишние — нулями).
+bool parse_version(const std::string& s, Version& out);
+
+// Печатает части до последней ненулевой, но не меньше двух ("1.1.0.0" -> "1.1",
+// "1.1.0.1" -> "1.1.0.1": нулевую третью часть в середине не выбрасывает).
+std::string format_version(const Version& v);
 
 // <0 — a старше b, 0 — равны, >0 — a новее b.
-int compare_versions(const int a[3], const int b[3]);
+int compare_versions(const Version& a, const Version& b);
 
 // Чтение/запись файла по UTF-8 пути. SDL_GetPrefPath/SDL_GetBasePath отдают
 // UTF-8, а std::ifstream/ofstream с узкой строкой на Windows трактуют байты как

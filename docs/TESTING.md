@@ -72,8 +72,8 @@ SDL_VIDEODRIVER=dummy tests/build/unit_util
 SDL_VIDEODRIVER=dummy tests/build/unit_update
 ```
 
-Observed results with the current sources: `unit_game` 103/0, `unit_util` 126/0,
-`unit_update` 75/0.
+Observed results with the current sources: `unit_game` 103/0, `unit_util` 146/0,
+`unit_update` 80/0.
 
 - `unit_game` exercises movement, queued turns, wall/self collisions, growth, food
   spawning, the constant move speed, determinism, the win-by-filling-the-field path and the
@@ -84,7 +84,9 @@ Observed results with the current sources: `unit_game` 103/0, `unit_util` 126/0,
   the glow animation.
 - `unit_util` covers `parse_version`, `format_version`, `compare_versions`, `fnv1a`,
   `trim_str`, version-file loading and the signed `scores.json` format, and runs
-  sub-process checks for the preference directory.
+  sub-process checks for the preference directory. Version checks include four-part
+  numbers (`1.1.2.1`): parsing keeps the fourth part, formatting round-trips it, and
+  comparison orders `1.1.2 < 1.1.2.1 < 1.1.3`.
 
 > The `tests/unit_*.cpp` headers point here for their build and run commands; there is
 > no separate build script for them.
