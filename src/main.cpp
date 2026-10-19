@@ -28,6 +28,7 @@
 #include "ui.h"
 #include "update.h"
 #include "util.h"
+#include "winlive.h"
 #include "version.h"
 
 // Точка сборки: здесь только инициализация, ввод и главный цикл. Логика игры в
@@ -445,6 +446,48 @@ int run(int argc, char* argv[]) {
         }
     };
 
+    // Кадр рисуется и из главного цикла, и из хука окна (winlive): во время
+    // модального перемещения и ресайза окна Windows главный цикл игры стоит, и
+    // кадр должен обновляться сам — иначе фон и узор замирают до отпускания
+    // мыши. Состояние для кадра лежит рядом с лямбдой, чтобы хук видел последнее
+    // отрисованное состояние, а не пустую структуру.
+    ScreenFrame frame{};
+    Uint32 now = SDL_GetTicks();
+    auto draw_frame = [&]() {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        // Экранную привязку фона держим свежей каждый кадр: композитор двигает
+        // окно при ресайзе, а события MOVED/SIZE_CHANGED могут отставать или
+        // схлопываться, из-за чего узор на кадр «дёргался» бы.
+        {
+            int ox = 0, oy = 0;
+            SDL_GetWindowPosition(window, &ox, &oy);
+            ui.set_screen_origin(ox, oy);
+        }
+
+        frame.game = &game;
+        frame.updates = &updates;
+        frame.app_version = &app_version;
+        frame.score = game.score();
+        frame.igt_ms = static_cast<Uint32>(igt_ms);
+        frame.move_t = move_t;
+        frame.best_score = best_score;
+        frame.now = now;
+        frame.paused = paused;
+        frame.game_over = game_over_active;
+        frame.won = game_won_active;
+        render_screen(ui, screen_state, frame);
+    };
+    live_redraw_install(window, [&]() {
+        // Модальный цикл мог изменить размер окна, а SDL_WINDOWEVENT_RESIZED
+        // игра получит только после отпускания мыши: вёрстку и фон пересобираем
+        // здесь же, иначе новый кадр нарисовался бы в старом масштабе.
+        apply_window_layout();
+        draw_frame();
+        SDL_RenderPresent(renderer);
+    });
+
     while (running) {
         const double frame_begin = now_ms();
         double frame_delta = frame_begin - last_frame_ms;
@@ -455,7 +498,7 @@ int run(int argc, char* argv[]) {
         if (frame_delta > 250.0) {
             frame_delta = 250.0;
         }
-        const Uint32 now = SDL_GetTicks();
+        now = SDL_GetTicks();
 
         if (!min_size_set) {
             // Минимум ставим на первом кадре, а не при создании окна: на Wayland
@@ -716,31 +759,7 @@ int run(int argc, char* argv[]) {
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-
-        // Экранную привязку фона держим свежей каждый кадр: композитор двигает
-        // окно при ресайзе, а события MOVED/SIZE_CHANGED могут отставать или
-        // схлопываться, из-за чего узор на кадр «дёргался» бы.
-        {
-            int ox = 0, oy = 0;
-            SDL_GetWindowPosition(window, &ox, &oy);
-            ui.set_screen_origin(ox, oy);
-        }
-
-        ScreenFrame frame;
-        frame.game = &game;
-        frame.updates = &updates;
-        frame.app_version = &app_version;
-        frame.score = game.score();
-        frame.igt_ms = static_cast<Uint32>(igt_ms);
-        frame.move_t = move_t;
-        frame.best_score = best_score;
-        frame.now = now;
-        frame.paused = paused;
-        frame.game_over = game_over_active;
-        frame.won = game_won_active;
-        render_screen(ui, screen_state, frame);
+        draw_frame();
 
         SDL_RenderPresent(renderer);
 
@@ -759,6 +778,7 @@ int run(int argc, char* argv[]) {
         }
     }
 
+    live_redraw_uninstall();
     ui.destroy();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

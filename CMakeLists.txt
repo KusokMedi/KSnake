@@ -45,6 +45,7 @@ add_executable(snake
     src/update.cpp
     src/util.cpp
     src/version.cpp
+    src/winlive.cpp
 )
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set_target_properties(snake PROPERTIES WIN32_EXECUTABLE TRUE)

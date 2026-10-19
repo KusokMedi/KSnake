@@ -228,8 +228,9 @@ def generate():
                LAYOUT_FIX.rstrip("\n"), "чтение размера окна в apply_window_layout")
     patch_once(main_cpp, "    while (running) {\n",
                "    while (running) {\n" + STATE_HOOK, "главный цикл")
-    patch_once(main_cpp, "        SDL_RenderPresent(renderer);",
-               SHOT_HOOK + "        SDL_RenderPresent(renderer);", "SDL_RenderPresent")
+    patch_once(main_cpp, "        render_screen(ui, screen_state, frame);",
+               "        render_screen(ui, screen_state, frame);\n" + SHOT_HOOK.rstrip("\n"),
+               "отрисовка кадра")
 
 
 def build():

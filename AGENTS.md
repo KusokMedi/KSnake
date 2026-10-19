@@ -75,6 +75,7 @@ The following is a historical module map; verify it against the current reposito
 | `src/storage.h/.cpp` | User data directory and score persistence (`scores.json`) |
 | `src/version.h/.cpp` | Version reading |
 | `src/util.h/.cpp` | String helpers, `parse_version`, `compare_versions`, `fnv1a` |
+| `src/winlive.h/.cpp` | Redraw on Windows during the modal window move/resize loop (window procedure subclass + timer); no-op elsewhere |
 
 ### Boundaries and additions
 - Put a new subsystem in focused `src/<subsystem>.h` and `src/<subsystem>.cpp` files where appropriate. Avoid vague files such as `helpers.cpp`, `common.cpp`, and `misc.cpp`.
