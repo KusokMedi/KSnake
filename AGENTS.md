@@ -106,7 +106,7 @@ Verify these scripts and their actual behavior before use:
 ```bash
 ./build.sh
 ./start.sh
-./fresh-start.sh
+./freshstart.sh
 ./build_release.sh [VERSION]
 ./assets/make_icons.sh
 ```
@@ -114,7 +114,7 @@ Verify these scripts and their actual behavior before use:
 Historical roles:
 - `build.sh`: configure/build using CMake.
 - `start.sh`: build if needed and launch with diagnostic output.
-- `fresh-start.sh`: remove generated build output, rebuild, and launch. Inspect side effects before running.
+- `freshstart.sh`: build, then launch with diagnostic output; no wipe of the build directory.
 - `build_release.sh [VERSION]`: build local Linux AppImage and Windows standalone `.exe` artifacts; this does not authorize publication.
 - `assets/make_icons.sh`: generate icon sizes and Windows `.ico` from the master SVG.
 

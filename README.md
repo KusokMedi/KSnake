@@ -78,7 +78,6 @@ The main menu supports both arrow keys + `Enter` and mouse. Menu items are also 
 ```bash
 ./build.sh          # configure and build into build/ (default Release)
 ./start.sh          # build if needed, then run build/snake with --debug to stdout
-./fresh-start.sh    # remove build/, rebuild from scratch and run
 ./freshstart.sh     # build.sh, then start.sh
 ```
 
@@ -140,7 +139,6 @@ KSnake/
 ├── build.sh             # dev build
 ├── build_release.sh     # release build (AppImage + Windows exe)
 ├── start.sh             # run
-├── fresh-start.sh       # wipe build/, rebuild from scratch and run
 ├── freshstart.sh        # build.sh, then start.sh
 └── CMakeLists.txt       # build configuration
 ```
