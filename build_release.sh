@@ -182,18 +182,26 @@ EOF
 # Ресурс внутреннего KSnake.exe: иконка + VERSIONINFO, чтобы в Task Manager у
 # запущенного процесса было осмысленное имя/описание. Обёртка-singlefile ниже
 # несёт собственный ICON; здесь — именно exe, который она запускает.
-V_MAJOR="${VERSION%%.*}"
-V_REST="${VERSION#*.}"
-V_MINOR="${V_REST%%.*}"
-[[ "$V_REST" == "$V_MINOR" ]] && V_PATCH=0 || V_PATCH="${V_REST#*.}"
-[[ "$V_MINOR" =~ ^[0-9]+$ ]] || V_MINOR=0
-[[ "$V_PATCH" =~ ^[0-9]+$ ]] || V_PATCH=0
+# FILEVERSION/PRODUCTVERSION — четыре числовых поля. Берём до четырёх первых
+# частей тега и дополняем нулями: у "1.1.2.1" должно получиться 1,1,2,1
+# (старый разбор склеивал "2.1" в одно поле и давал 1,1,0,0).
+# Части режем через read -a, а не while read: последняя часть строки без
+# завершающего перевода строки while read не отдаёт и теряется молча.
+IFS='.' read -r -a V_SRC <<<"$VERSION"
+[[ "${#V_SRC[@]}" -le 4 ]] \
+    || fail "VERSION '$VERSION' has more than four parts (game and FILEVERSION keep four)"
+V_FIELDS=("${V_SRC[@]}")
+while [ "${#V_FIELDS[@]}" -lt 4 ]; do V_FIELDS+=("0"); done
+V_MAJOR="${V_FIELDS[0]}"
+V_MINOR="${V_FIELDS[1]}"
+V_PATCH="${V_FIELDS[2]}"
+V_BUILD="${V_FIELDS[3]}"
 WINRES_RC="$CACHE_DIR/ksnake-winres.rc"
 cat > "$WINRES_RC" <<EOF
 1 ICON "$ICON_ICO"
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION $V_MAJOR,$V_MINOR,$V_PATCH,0
-PRODUCTVERSION $V_MAJOR,$V_MINOR,$V_PATCH,0
+FILEVERSION $V_MAJOR,$V_MINOR,$V_PATCH,$V_BUILD
+PRODUCTVERSION $V_MAJOR,$V_MINOR,$V_PATCH,$V_BUILD
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0x0L
 FILEOS 0x40004L
