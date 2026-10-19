@@ -131,6 +131,18 @@ int run(int argc, char* argv[]) {
     SDL_setenv("SDL_VIDEO_X11_WMCLASS", "KSnake", 0);
     SDL_SetHint(SDL_HINT_APP_NAME, "KSnake");
 
+#ifdef _WIN32
+    // Объявляем DPI-awareness до SDL_Init: SDL читает хинты только при
+    // инициализации видео (WIN_InitDPIAwareness из WIN_VideoInit), поэтому хинт,
+    // выставленный после SDL_Init, не делает ничего. Без awareness система
+    // считает процесс не знающим о DPI и при масштабе ≠100% растягивает окно
+    // битмапом — картинка мыльная. Берём именно awareness, а не
+    // SDL_HINT_WINDOWS_DPI_SCALING: scaling переводит координаты окон в «точки»,
+    // а рендерер SDL2 остаётся в пикселях бэкбуфера, и раскладка игры (её считает
+    // ui по SDL_GetWindowSize) разъехалась бы на HiDPI-мониторе.
+    SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
+#endif
+
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         if (log_fp) std::fclose(log_fp);
@@ -142,10 +154,6 @@ int run(int argc, char* argv[]) {
         if (log_fp) std::fclose(log_fp);
         return -1;
     }
-
-#ifdef _WIN32
-    SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
-#endif
 
     SDL_Window* window =
         SDL_CreateWindow("KSnake", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIN_W, WIN_H,
