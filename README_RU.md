@@ -123,6 +123,7 @@ KSnake/
 │   ├── version.h/.cpp   # чтение файла VERSION
 │   └── util.h/.cpp      # строки, разбор/сравнение версий, запуск процессов
 ├── VERSION              # текущая версия, единственный источник истины
+├── LICENSE              # GNU General Public License v3.0
 ├── assets/
 │   ├── font.ttf         # шрифт
 │   ├── ksnake.svg       # исходник иконки
@@ -158,4 +159,21 @@ headless-прогоны на устойчивость, визуальная ма
 
 ## Лицензия
 
-Apache License 2.0 - см. [LICENSE](LICENSE).
+KSnake — свободное ПО: вы можете распространять и/или изменять его на условиях GNU
+General Public License, опубликованной Free Software Foundation, либо версии 3 этой
+лицензии, либо (по вашему выбору) любой более поздней версии.
+
+Игра распространяется в надежде, что будет полезна, но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ, даже без
+подразумеваемой гарантии ТОВАРНОЙ ПРИГОДНОСТИ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+Подробности — в GNU General Public License.
+
+Полный текст лицензии лежит в [LICENSE](LICENSE) — GNU GPL v3.0.
+Copyright (C) 2026 KusokMedi.
+
+Готовые сборки (AppImage, Windows `.exe`) собраны из этого репозитория, который является
+Corresponding Source по GPL: на бинарники распространяются те же условия, а исходники,
+нужные для сборки и изменения, доступны здесь.
+
+Вшитые сторонние компоненты остаются под своими лицензиями: SDL2 и SDL2_ttf (лицензия
+zlib), nlohmann/json (`third_party/nlohmann/json.hpp`, MIT) и шрифт JetBrains Mono
+(`assets/font.ttf`, SIL Open Font License 1.1).

@@ -125,6 +125,7 @@ KSnake/
 │   ├── version.h/.cpp   # VERSION file loading
 │   └── util.h/.cpp      # strings, version parsing/comparison, process helpers
 ├── VERSION              # current version, single source of truth
+├── LICENSE              # GNU General Public License v3.0
 ├── assets/
 │   ├── font.ttf         # font
 │   ├── ksnake.svg       # icon source
@@ -160,4 +161,21 @@ and repository policy are defined in [AGENTS.md](AGENTS.md).
 
 ## License
 
-Apache License 2.0 - see [LICENSE](LICENSE).
+KSnake is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3
+of the License, or (at your option) any later version.
+
+The game is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU General Public License for more details.
+
+The full license text is in [LICENSE](LICENSE) — GNU GPL v3.0.
+Copyright (C) 2026 KusokMedi.
+
+Binary releases (AppImage, Windows `.exe`) are built from this repository, which is the
+Corresponding Source under the GPL: the same terms apply to the binaries, and the source
+needed to build and modify them is available here.
+
+Bundled third-party components keep their own licenses: SDL2 and SDL2_ttf (zlib license),
+nlohmann/json (`third_party/nlohmann/json.hpp`, MIT) and the JetBrains Mono font
+(`assets/font.ttf`, SIL Open Font License 1.1).
