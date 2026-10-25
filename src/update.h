@@ -71,6 +71,7 @@ private:
     std::string url_;
     std::string note_;
     std::shared_ptr<Fetch> fetch_;
+    uint64_t next_fetch_id_ = 0;
     Uint32 started_ms_ = 0;
     uint64_t result_ms_ = 0;     // когда получен результат (0 — кэша нет)
     uint64_t next_auto_ms_ = 0;  // когда запускать следующую фоновую проверку

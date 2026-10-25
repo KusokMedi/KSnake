@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include <SDL.h>
 
 #define private public
@@ -310,6 +312,17 @@ void test_scores_json() {
     {
         int v = load_best_score(p);
         CHECK(v == 0, "huge best score -> 0 (got " + std::to_string(v) + ")");
+    }
+    // Число с корректной подписью, но вне int, тоже не должно выбрасывать
+    // исключение из json::get<int>().
+    remove_file(p);
+    {
+        nlohmann::json huge;
+        huge["best_score"] = 9223372036854775807LL;
+        std::string payload = huge.dump();
+        huge["sign"] = fnv1a(payload);
+        write_file(p, huge.dump());
+        CHECK(load_best_score(p) == 0, "signed huge best score -> 0 without throwing");
     }
     // Нормальный цикл save/load.
     remove_file(p);

@@ -415,6 +415,34 @@ void test_poll_transitions() {
         setenv("PATH", saved.c_str(), 1);
         unsetenv("KS_STUB_SLEEP");
     }
+    // После watchdog первый curl ещё живёт. Повторный запрос получает отдельный
+    // временный файл, успешно завершается и не оставляет результат старой нити.
+    {
+        reset_pref();
+        std::string saved = getenv("PATH") ? getenv("PATH") : "";
+        setenv("PATH", (stub_dir + ":" + saved).c_str(), 1);
+        setenv("KS_STUB_SLEEP", "1", 1);
+        setenv("KS_STUB_B64", b64("{\"tag_name\":\"v9.0.0\"}").c_str(), 1);
+        UpdateChecker u(g_pref, "1.1");
+        u.start(false);
+        u.started_ms_ = SDL_GetTicks() - 26000;
+        u.poll();
+        CHECK(u.state() == UpdateState::Failed, "watchdog permits a retry after the old curl");
+        unsetenv("KS_STUB_SLEEP");
+        setenv("KS_STUB_B64", b64("{\"tag_name\":\"v2.0.0\"}").c_str(), 1);
+        u.start(false);
+        for (int i = 0; i < 100 && u.state() == UpdateState::Checking; ++i) {
+            u.poll();
+            SDL_Delay(10);
+        }
+        CHECK(u.state() == UpdateState::Available && u.version() == "2.0",
+              "retry reads its own response, not the timed-out request");
+        SDL_Delay(1200);
+        CHECK(access((g_pref + "update.json").c_str(), F_OK) != 0,
+              "timed-out request leaves no shared update.json file");
+        setenv("PATH", saved.c_str(), 1);
+        unsetenv("KS_STUB_SLEEP");
+    }
     // Повторный клик во время Checking: второй запрос не заводится, иначе ответ
     // первой нити терялся, а GitHub получал лишний запрос к лимиту 60/час.
     {

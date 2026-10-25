@@ -106,14 +106,20 @@ int load_best_score(const std::string& path) {
     } catch (...) {
         return 0;
     }
-    auto it = j.find("sign");
-    if (it == j.end() || !it->is_number_unsigned()) return 0;
-    json payload = j;
-    payload.erase("sign");
-    if (fnv1a(payload.dump()) != it->get<uint32_t>()) return 0;
-    if (j.contains("best_score") && j["best_score"].is_number_integer()) {
-        int v = j["best_score"].get<int>();
-        return v > 0 ? v : 0;
+    try {
+        auto it = j.find("sign");
+        if (it == j.end() || !it->is_number_unsigned()) return 0;
+        json payload = j;
+        payload.erase("sign");
+        if (fnv1a(payload.dump()) != it->get<uint32_t>()) return 0;
+        if (j.contains("best_score") && j["best_score"].is_number_integer()) {
+            int v = j["best_score"].get<int>();
+            return v > 0 ? v : 0;
+        }
+    } catch (...) {
+        // Подпись или счёт могут быть числом вне диапазона целевого типа.
+        // Повреждённый пользовательский файл не должен завершать игру.
+        return 0;
     }
     return 0;
 }

@@ -250,10 +250,13 @@ void UpdateChecker::start(bool automatic) {
     started_ms_ = SDL_GetTicks();
     auto fs = std::make_shared<Fetch>();
     fetch_ = fs;
-    std::string out_path = pref_dir_ + "update.json";
+    // После watchdog старый detached-поток может ещё завершаться. У каждого
+    // запроса свой временный файл, чтобы старый curl не подменил ответ нового.
+    std::string out_path = pref_dir_ + "update-" + std::to_string(++next_fetch_id_) + ".json";
     const std::string user_agent = "KSnake/" + app_version_;
     std::thread([fs, out_path, user_agent]() {
         std::string body = http_get(GITHUB_API_LATEST, out_path, user_agent);
+        remove_file(out_path);
         std::lock_guard<std::mutex> lk(fs->mtx);
         fs->body = std::move(body);
         fs->done = true;

@@ -72,8 +72,8 @@ SDL_VIDEODRIVER=dummy tests/build/unit_util
 SDL_VIDEODRIVER=dummy tests/build/unit_update
 ```
 
-Observed results with the current sources: `unit_game` 103/0, `unit_util` 146/0,
-`unit_update` 80/0.
+Observed results with the current sources: `unit_game` 103/0, `unit_util` 147/0,
+`unit_update` 83/0.
 
 - `unit_game` exercises movement, queued turns, wall/self collisions, growth, food
   spawning, the constant move speed, determinism, the win-by-filling-the-field path and the
