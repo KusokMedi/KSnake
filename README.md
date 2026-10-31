@@ -73,6 +73,21 @@ The main menu supports both arrow keys + `Enter` and mouse. Menu items are also 
   SDL2/SDL2_ttf MinGW development packages are downloaded into `.release-cache/`
   automatically
 
+## Installing dependencies (Arch Linux)
+
+On Arch Linux and derivatives, `install.sh` installs everything needed for building
+and developing KSnake:
+
+```bash
+./install.sh            # full set (default): build + release + tests + icons
+./install.sh --minimal  # only the game build dependencies
+./install.sh --build    # install, then build the project
+./install.sh --dry-run  # show the package list without installing
+```
+
+Use `./install.sh --help` for all options. The script uses `yay`/`paru` when
+available and falls back to `pacman`.
+
 ## Building and running
 
 ```bash
